@@ -346,6 +346,35 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.press(KEY_PAGE_DOWN);
         delay(20);
         Keyboard.releaseAll();
+      } else if (combo == "F11") {
+        Keyboard.press(KEY_F11);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Shutdown") {
+        // shutdown /s /t 0 via Win+R
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("shutdown /s /t 0");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] Shutdown\n");
+      } else if (combo == "Restart") {
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("shutdown /r /t 0");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] Restart\n");
       } else if (combo == "DetectLang") {
         if (ldState == LD_IDLE) {
           ldState = LD_ENSURE_CAPS_OFF;

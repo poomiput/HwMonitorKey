@@ -91,6 +91,12 @@ header p{font-size:.8em;color:#718096;margin:2px 0 6px}
 .run-input::placeholder{color:#2d3748}
 .run-btn{padding:8px 16px;border:1px solid rgba(72,187,120,.4);background:rgba(72,187,120,.12);color:#48bb78;border-radius:6px;cursor:pointer;font-size:.75em;font-weight:700;transition:.2s;white-space:nowrap}
 .run-btn:hover{background:rgba(72,187,120,.25);border-color:#48bb78}
+/* Prank buttons */
+.prank-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.prank-btns .pbtn{padding:5px 12px;border:1px solid rgba(245,101,101,.25);background:rgba(245,101,101,.06);color:#fc8181;border-radius:6px;cursor:pointer;font-size:.72em;font-weight:600;transition:.2s;white-space:nowrap}
+.prank-btns .pbtn:hover{background:rgba(245,101,101,.18);border-color:#f56565}
+.prank-btns .pbtn:active{transform:scale(.95)}
+.kb-col-title.prank{color:#fc8181}
 /* Language indicator */
 .lang-ind{display:inline-flex;align-items:center;gap:4px;font-size:.72em;padding:2px 10px;border-radius:6px;border:1px solid rgba(99,179,237,.15);color:#718096;transition:.3s}
 .lang-ind.th{background:rgba(246,173,85,.15);color:#f6ad55;border-color:rgba(246,173,85,.4)}
@@ -194,7 +200,19 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <button class="sbtn" onclick="wsSendCombo('Alt+Tab')">Alt+Tab</button>
 <button class="sbtn" onclick="wsSendCombo('Alt+F4')">Alt+F4</button>
 <button class="sbtn" onclick="wsSendCombo('PrtSc')">&#128247; PrtSc</button>
+<button class="sbtn" onclick="if(confirm('Shutdown PC?'))wsSendCombo('Shutdown')" style="border-color:rgba(245,101,101,.4);background:rgba(245,101,101,.08);color:#f56565">&#9211; Shutdown</button>
+<button class="sbtn" onclick="if(confirm('Restart PC?'))wsSendCombo('Restart')" style="border-color:rgba(246,173,85,.4);background:rgba(246,173,85,.08);color:#f6ad55">&#128260; Restart</button>
 </div>
+</div>
+</div>
+<div class="kb-hidden" id="kbPranks" style="margin-top:10px">
+<div class="kb-col-title prank">&#128520; Pranks (use at your own risk)</div>
+<div class="prank-btns">
+<button class="pbtn" onclick="if(confirm('Rickroll?'))runPrank('rickroll')">&#127925; Rickroll</button>
+<button class="pbtn" onclick="if(confirm('Fake BSOD?'))runPrank('fakeupdate')">&#128309; Fake BSOD</button>
+<button class="pbtn" onclick="if(confirm('Shutdown 10s?'))runPrank('shutdown10')">&#9200; Shutdown 10s</button>
+<button class="pbtn" onclick="if(confirm('Mouse Haunt?'))runPrank('mousehaunt')">&#128433; Mouse Haunt</button>
+<button class="pbtn" onclick="if(confirm('Error Popup?'))runPrank('errorpopup')">&#9888; Error Popup</button>
 </div>
 </div>
 <div class="run-panel kb-hidden" id="runPanel">
@@ -447,6 +465,7 @@ function toggleKb(){
   kbInput.classList.toggle('kb-hidden',!on);
   kbInfo.classList.toggle('kb-hidden',!on);
   document.getElementById('kbCols').classList.toggle('kb-hidden',!on);
+  document.getElementById('kbPranks').classList.toggle('kb-hidden',!on);
   document.getElementById('runPanel').classList.toggle('kb-hidden',!on);
   if(on) kbInput.focus();
 }
@@ -473,6 +492,25 @@ function runScript(){
   ws.send('RUNCMD:'+cmd);
   footer.textContent='[RunScript] '+cmd;
   ri.value='';
+}
+
+const PRANKS={
+  rickroll:'RUNCMD:https://youtu.be/dQw4w9WgXcQ?autoplay=1',
+  fakeupdate:'RUNCMD:https://fakeupdate.net/win10ue/',
+  shutdown10:'RUNCMD:shutdown -s -t 10 -c "ลาก่อนนน" -f',
+  mousehaunt:'RUNCMD:powershell -w h -c "Add-Type -A System.Windows.Forms;while($true){[System.Windows.Forms.Cursor]::Position=[System.Drawing.Point]::new((random 1920),(random 1080));sleep -m 500}"',
+  errorpopup:'RUNCMD:powershell -w h -c "Add-Type -A System.Windows.Forms,System.Drawing;while($true){$f=New-Object Windows.Forms.Form;$f.TopMost=$true;$f.StartPosition=4;$f.Location=[Drawing.Point]::new((random 1500),(random 800));$f.Text=\'CRITICAL ERROR!\';$b=New-Object Windows.Forms.Button;$b.Text=\'OK\';$b.Dock=5;$b.Add_Click({$f.Close()});$f.Controls.Add($b);$f.ShowDialog()}"'
+};
+function runPrank(id){
+  if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
+  const cmd=PRANKS[id];
+  if(!cmd) return;
+  ws.send(cmd);
+  footer.textContent='[Prank] '+id;
+  // Rickroll & fakeupdate need F11 after page loads
+  if(id==='rickroll'||id==='fakeupdate'){
+    setTimeout(()=>{ws.send('CMD:F11');},5000);
+  }
 }
 document.addEventListener('DOMContentLoaded',function(){
   const ri=document.getElementById('runInput');
