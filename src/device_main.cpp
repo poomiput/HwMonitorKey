@@ -322,6 +322,30 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
+      } else if (combo == "Delete") {
+        Keyboard.press(KEY_DELETE);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Insert") {
+        Keyboard.press(KEY_INSERT);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Home") {
+        Keyboard.press(KEY_HOME);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "End") {
+        Keyboard.press(KEY_END);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "PageUp") {
+        Keyboard.press(KEY_PAGE_UP);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "PageDown") {
+        Keyboard.press(KEY_PAGE_DOWN);
+        delay(20);
+        Keyboard.releaseAll();
       } else if (combo == "DetectLang") {
         if (ldState == LD_IDLE) {
           ldState = LD_ENSURE_CAPS_OFF;
@@ -333,6 +357,34 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
       } else {
         LOG("[WebKB] unknown combo: %s\n", combo.c_str());
       }
+    // --- Run Script: "RUNCMD:<command>" ---
+    // Opens Win+R, types command, presses Enter, then Esc×2 to dismiss errors
+    } else if (msg.startsWith("RUNCMD:")) {
+      String cmd = msg.substring(7);
+      LOG("[WebKB] RunScript: %s\n", cmd.c_str());
+      // 1. Win+R
+      Keyboard.press(KEY_LEFT_GUI);
+      Keyboard.press('r');
+      delay(20);
+      Keyboard.releaseAll();
+      delay(800);
+      // 2. Type the command
+      Keyboard.print(cmd.c_str());
+      delay(300);
+      // 3. Enter
+      Keyboard.press(KEY_RETURN);
+      delay(20);
+      Keyboard.releaseAll();
+      // 4. After delay, Esc×2 to dismiss any error
+      delay(3000);
+      Keyboard.press(KEY_ESC);
+      delay(20);
+      Keyboard.releaseAll();
+      delay(200);
+      Keyboard.press(KEY_ESC);
+      delay(20);
+      Keyboard.releaseAll();
+      LOG("[WebKB] RunScript done\n");
     // --- Thai mapping: "TH:<en_key>:<thai_display>" ---
     } else if (msg.startsWith("TH:") && msg.length() >= 6) {
       // Parse: TH:d:ก  (TH:<mapped_en>:<original_thai>)
@@ -358,7 +410,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
 
     // Broadcast to web monitor for display (non-Thai, non-CMD messages)
     if (msg.length() > 0 && msg.length() <= 10 && !msg.startsWith("Connected")
-        && !msg.startsWith("CMD:") && !msg.startsWith("TH:")) {
+        && !msg.startsWith("CMD:") && !msg.startsWith("TH:")
+        && !msg.startsWith("RUNCMD:")) {
       char json[160];
       snprintf(json, sizeof(json),
                "{\"e\":\"press\",\"k\":\"%s\",\"h\":\"\",\"m\":\"\",\"t\":%lu,\"src\":\"web\"}",

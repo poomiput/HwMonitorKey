@@ -74,6 +74,23 @@ header p{font-size:.8em;color:#718096;margin:2px 0 6px}
 .kb-shortcuts .sbtn{padding:5px 12px;border:1px solid rgba(183,148,244,.25);background:rgba(183,148,244,.08);color:#b794f4;border-radius:6px;cursor:pointer;font-size:.72em;font-weight:600;transition:.2s;white-space:nowrap}
 .kb-shortcuts .sbtn:hover{background:rgba(183,148,244,.2);border-color:#b794f4}
 .kb-shortcuts .sbtn:active{transform:scale(.95)}
+/* Key buttons (common keys) */
+.key-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.key-btns .kbtn{padding:5px 12px;border:1px solid rgba(99,179,237,.25);background:rgba(99,179,237,.08);color:#63b3ed;border-radius:6px;cursor:pointer;font-size:.72em;font-weight:600;transition:.2s;white-space:nowrap}
+.key-btns .kbtn:hover{background:rgba(99,179,237,.2);border-color:#63b3ed}
+.key-btns .kbtn:active{transform:scale(.95)}
+/* Two-column layout */
+.kb-cols{display:flex;gap:16px;margin-top:8px}
+.kb-col{flex:1;min-width:0}
+.kb-col-title{font-size:.7em;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+@media(max-width:600px){.kb-cols{flex-direction:column}}
+/* Run script panel */
+.run-panel{display:flex;gap:6px;margin-top:8px;align-items:center}
+.run-input{flex:1;background:#111827;border:1px solid rgba(72,187,120,.2);border-radius:6px;padding:8px 12px;color:#48bb78;font-family:'Cascadia Code',Consolas,monospace;font-size:.82em;outline:none}
+.run-input:focus{border-color:rgba(72,187,120,.5);box-shadow:0 0 8px rgba(72,187,120,.1)}
+.run-input::placeholder{color:#2d3748}
+.run-btn{padding:8px 16px;border:1px solid rgba(72,187,120,.4);background:rgba(72,187,120,.12);color:#48bb78;border-radius:6px;cursor:pointer;font-size:.75em;font-weight:700;transition:.2s;white-space:nowrap}
+.run-btn:hover{background:rgba(72,187,120,.25);border-color:#48bb78}
 /* Language indicator */
 .lang-ind{display:inline-flex;align-items:center;gap:4px;font-size:.72em;padding:2px 10px;border-radius:6px;border:1px solid rgba(99,179,237,.15);color:#718096;transition:.3s}
 .lang-ind.th{background:rgba(246,173,85,.15);color:#f6ad55;border-color:rgba(246,173,85,.4)}
@@ -141,12 +158,35 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <button class="sbtn" onclick="detectLang()" id="btnDetectLang" style="border-color:rgba(72,187,120,.4);background:rgba(72,187,120,.08);color:#48bb78;border-radius:6px;font-size:.72em;font-weight:600;padding:5px 12px;border-width:1px;border-style:solid;cursor:pointer">&#127760; Detect</button>
 </div>
 <textarea class="kb-area kb-hidden" id="kbInput" placeholder="Click here and type to send keystrokes to PC..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-<div class="kb-shortcuts kb-hidden" id="kbShortcuts">
+<div class="kb-cols kb-hidden" id="kbCols">
+<div class="kb-col">
+<div class="kb-col-title">&#9000; Keys</div>
+<div class="key-btns">
+<button class="kbtn" onclick="wsSendText('Tab')">Tab &#8677;</button>
+<button class="kbtn" onclick="wsSendText('Escape')">Esc</button>
+<button class="kbtn" onclick="wsSendText('Enter')">Enter &#9166;</button>
+<button class="kbtn" onclick="wsSendText('Backspace')">&#9003; Bksp</button>
+<button class="kbtn" onclick="wsSendCombo('Delete')">Del</button>
+<button class="kbtn" onclick="wsSendCombo('Insert')">Ins</button>
+<button class="kbtn" onclick="wsSendCombo('Home')">Home</button>
+<button class="kbtn" onclick="wsSendCombo('End')">End</button>
+<button class="kbtn" onclick="wsSendCombo('PageUp')">PgUp</button>
+<button class="kbtn" onclick="wsSendCombo('PageDown')">PgDn</button>
+<button class="kbtn" onclick="wsSendText('ArrowUp')">&#9650;</button>
+<button class="kbtn" onclick="wsSendText('ArrowDown')">&#9660;</button>
+<button class="kbtn" onclick="wsSendText('ArrowLeft')">&#9664;</button>
+<button class="kbtn" onclick="wsSendText('ArrowRight')">&#9654;</button>
+</div>
+</div>
+<div class="kb-col">
+<div class="kb-col-title">&#128268; Hotkeys</div>
+<div class="kb-shortcuts">
 <button class="sbtn" onclick="wsSendCombo('CapsLock')">&#8682; CapsLock</button>
 <button class="sbtn" onclick="wsSendCombo('Win+Space')">&#127760; Win+Space</button>
 <button class="sbtn" onclick="wsSendCombo('Win+D')">&#128187; Win+D</button>
-<button class="sbtn" onclick="wsSendCombo('Ctrl+Shift+Esc')">&#9881; TaskMgr</button>
+<button class="sbtn" onclick="wsSendCombo('Win+R')">&#9654; Win+R</button>
 <button class="sbtn" onclick="wsSendCombo('Win+L')">&#128274; Win+L</button>
+<button class="sbtn" onclick="wsSendCombo('Ctrl+Shift+Esc')">&#9881; TaskMgr</button>
 <button class="sbtn" onclick="wsSendCombo('Ctrl+C')">Ctrl+C</button>
 <button class="sbtn" onclick="wsSendCombo('Ctrl+V')">Ctrl+V</button>
 <button class="sbtn" onclick="wsSendCombo('Ctrl+Z')">Ctrl+Z</button>
@@ -154,7 +194,12 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <button class="sbtn" onclick="wsSendCombo('Alt+Tab')">Alt+Tab</button>
 <button class="sbtn" onclick="wsSendCombo('Alt+F4')">Alt+F4</button>
 <button class="sbtn" onclick="wsSendCombo('PrtSc')">&#128247; PrtSc</button>
-<button class="sbtn" onclick="wsSendCombo('Win+R')">&#9654; Win+R</button>
+</div>
+</div>
+</div>
+<div class="run-panel kb-hidden" id="runPanel">
+<input class="run-input" id="runInput" type="text" placeholder="&#9654; Paste command here, press Enter to run via Win+R..." autocomplete="off" spellcheck="false">
+<button class="run-btn" onclick="runScript()">&#9654; Run</button>
 </div>
 <div class="kb-info kb-hidden" id="kbInfo">Keys typed here are sent as USB HID to the PC via ESP32</div>
 </div>
@@ -401,7 +446,8 @@ function toggleKb(){
   const on=document.getElementById('chkKb').checked;
   kbInput.classList.toggle('kb-hidden',!on);
   kbInfo.classList.toggle('kb-hidden',!on);
-  document.getElementById('kbShortcuts').classList.toggle('kb-hidden',!on);
+  document.getElementById('kbCols').classList.toggle('kb-hidden',!on);
+  document.getElementById('runPanel').classList.toggle('kb-hidden',!on);
   if(on) kbInput.focus();
 }
 
@@ -418,6 +464,22 @@ function detectLang(){
   ws.send('CMD:DetectLang');
   footer.textContent='[LangDetect] Starting detection...';
 }
+
+function runScript(){
+  const ri=document.getElementById('runInput');
+  const cmd=ri.value.trim();
+  if(!cmd){return;}
+  if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
+  ws.send('RUNCMD:'+cmd);
+  footer.textContent='[RunScript] '+cmd;
+  ri.value='';
+}
+document.addEventListener('DOMContentLoaded',function(){
+  const ri=document.getElementById('runInput');
+  if(ri) ri.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();runScript();}
+  });
+});
 
 function wsSendText(msg){
   if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
