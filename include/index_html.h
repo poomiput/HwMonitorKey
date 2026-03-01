@@ -296,16 +296,9 @@ setInterval(()=>{
   if(sessionStart) sSession.textContent=fmtTime(Date.now()-sessionStart);
 },1000);
 
-// === Web Keyboard Input ===
+// === Web Keyboard Input (Simple Text-based) ===
 const kbInput=document.getElementById('kbInput');
 const kbInfo=document.getElementById('kbInfo');
-const JS2HID={KeyA:0x04,KeyB:0x05,KeyC:0x06,KeyD:0x07,KeyE:0x08,KeyF:0x09,KeyG:0x0A,KeyH:0x0B,KeyI:0x0C,KeyJ:0x0D,KeyK:0x0E,KeyL:0x0F,KeyM:0x10,KeyN:0x11,KeyO:0x12,KeyP:0x13,KeyQ:0x14,KeyR:0x15,KeyS:0x16,KeyT:0x17,KeyU:0x18,KeyV:0x19,KeyW:0x1A,KeyX:0x1B,KeyY:0x1C,KeyZ:0x1D,Digit1:0x1E,Digit2:0x1F,Digit3:0x20,Digit4:0x21,Digit5:0x22,Digit6:0x23,Digit7:0x24,Digit8:0x25,Digit9:0x26,Digit0:0x27,Enter:0x28,Escape:0x29,Backspace:0x2A,Tab:0x2B,Space:0x2C,Minus:0x2D,Equal:0x2E,BracketLeft:0x2F,BracketRight:0x30,Backslash:0x31,Semicolon:0x33,Quote:0x34,Backquote:0x35,Comma:0x36,Period:0x37,Slash:0x38,CapsLock:0x39,F1:0x3A,F2:0x3B,F3:0x3C,F4:0x3D,F5:0x3E,F6:0x3F,F7:0x40,F8:0x41,F9:0x42,F10:0x43,F11:0x44,F12:0x45,ArrowRight:0x4F,ArrowLeft:0x50,ArrowDown:0x51,ArrowUp:0x52,Delete:0x4C,Home:0x4A,End:0x4D,PageUp:0x4B,PageDown:0x4E,Insert:0x49};
-const KEY2HID={a:0x04,b:0x05,c:0x06,d:0x07,e:0x08,f:0x09,g:0x0A,h:0x0B,i:0x0C,j:0x0D,k:0x0E,l:0x0F,m:0x10,n:0x11,o:0x12,p:0x13,q:0x14,r:0x15,s:0x16,t:0x17,u:0x18,v:0x19,w:0x1A,x:0x1B,y:0x1C,z:0x1D,A:0x04,B:0x05,C:0x06,D:0x07,E:0x08,F:0x09,G:0x0A,H:0x0B,I:0x0C,J:0x0D,K:0x0E,L:0x0F,M:0x10,N:0x11,O:0x12,P:0x13,Q:0x14,R:0x15,S:0x16,T:0x17,U:0x18,V:0x19,W:0x1A,X:0x1B,Y:0x1C,Z:0x1D,'1':0x1E,'2':0x1F,'3':0x20,'4':0x21,'5':0x22,'6':0x23,'7':0x24,'8':0x25,'9':0x26,'0':0x27,Enter:0x28,Escape:0x29,Backspace:0x2A,Tab:0x2B,' ':0x2C,'-':0x2D,'=':0x2E,'[':0x2F,']':0x30,'\\':0x31,';':0x33,"'":0x34,'`':0x35,',':0x36,'.':0x37,'/':0x38,ArrowRight:0x4F,ArrowLeft:0x50,ArrowDown:0x51,ArrowUp:0x52,Delete:0x4C,Home:0x4A,End:0x4D,PageUp:0x4B,PageDown:0x4E,Insert:0x49};
-
-function resolveHID(e){
-  return JS2HID[e.code]||KEY2HID[e.key]||0;
-}
-let webKeysDown=new Set();
 
 function toggleKb(){
   const on=document.getElementById('chkKb').checked;
@@ -314,69 +307,43 @@ function toggleKb(){
   if(on) kbInput.focus();
 }
 
-function sendWebKey(code,mod,isDown){
+function wsSendText(msg){
   if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
-  const msg='KB:'+(isDown?'D':'U')+':'+code+':'+mod;
-  console.log('[WebKB] Sending:',msg);
   ws.send(msg);
-  footer.textContent='[WebKB] '+(isDown?'DOWN':'UP')+' hid='+code+' mod='+mod;
+  footer.textContent='[WebKB] sent: '+msg;
+  console.log('[WebKB] sent:',msg);
 }
 
+// PATH 1: keydown — ONLY for special keys (Enter, Backspace)
 kbInput.addEventListener('keydown',function(e){
-  const hid=resolveHID(e);
-  console.log('[WebKB] keydown code=',e.code,'key=',e.key,'hid=',hid);
-  if(!hid) return;
-  e.preventDefault();
-  let mod=0;
-  if(e.shiftKey||(/^[A-Z]$/.test(e.key))) mod|=0x02;
-  if(e.ctrlKey) mod|=0x01;
-  if(e.altKey) mod|=0x04;
-  if(e.metaKey) mod|=0x08;
-  if(!webKeysDown.has(hid)){
-    webKeysDown.add(hid);
-    sendWebKey(hid,mod,true);
-  }
+  if(e.key==='Enter'){e.preventDefault();wsSendText('Enter');return;}
+  if(e.key==='Backspace'){e.preventDefault();wsSendText('Backspace');return;}
+  if(e.key==='Tab'){e.preventDefault();wsSendText('Tab');return;}
+  if(e.key==='Escape'){e.preventDefault();wsSendText('Escape');return;}
+  // Arrow keys
+  if(e.key==='ArrowUp'){e.preventDefault();wsSendText('ArrowUp');return;}
+  if(e.key==='ArrowDown'){e.preventDefault();wsSendText('ArrowDown');return;}
+  if(e.key==='ArrowLeft'){e.preventDefault();wsSendText('ArrowLeft');return;}
+  if(e.key==='ArrowRight'){e.preventDefault();wsSendText('ArrowRight');return;}
+  // Let all other keys fall through to input event
 });
 
-kbInput.addEventListener('keyup',function(e){
-  e.preventDefault();
-  const hid=resolveHID(e);
-  let mod=0;
-  if(e.ctrlKey) mod|=0x01;
-  if(e.shiftKey) mod|=0x02;
-  if(e.altKey) mod|=0x04;
-  if(e.metaKey) mod|=0x08;
-  webKeysDown.delete(hid);
-  if(hid) sendWebKey(hid,mod,false);
-});
-
-kbInput.addEventListener('blur',function(){
-  if(ws&&ws.readyState===1) ws.send('KB:R:0:0');
-  webKeysDown.clear();
-});
-
-// === Mobile IME fallback ===
+// PATH 2: input event — catches ALL typed characters (works on mobile IME too)
 let isComposing=false;
-function sendChars(str){
-  for(const ch of str){
-    const hid=KEY2HID[ch]||KEY2HID[ch.toLowerCase()]||0;
-    if(hid){
-      let mod=0;
-      if(/^[A-Z]$/.test(ch)) mod|=0x02;
-      sendWebKey(hid,mod,true);
-      setTimeout(()=>sendWebKey(hid,mod,false),50);
-      console.log('[WebKB] char=',ch,'hid=',hid);
-    }
-  }
-}
 kbInput.addEventListener('compositionstart',function(){isComposing=true;});
 kbInput.addEventListener('compositionend',function(e){
   isComposing=false;
-  if(e.data) sendChars(e.data);
+  if(e.data){
+    for(const ch of e.data) wsSendText(ch);
+  }
 });
 kbInput.addEventListener('input',function(e){
-  if(isComposing) return;
-  if(e.inputType==='insertText' && e.data) sendChars(e.data);
+  if(isComposing) return; // wait for compositionend
+  if(e.inputType==='insertText' && e.data){
+    for(const ch of e.data) wsSendText(ch);
+  } else if(e.inputType==='deleteContentBackward'){
+    wsSendText('Backspace'); // mobile backspace fallback
+  }
 });
 
 connect();

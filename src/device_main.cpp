@@ -172,48 +172,64 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
     LOG("[WS] Client #%u disconnected\n", num);
     break;
   case WStype_TEXT: {
-    // Debug: log all incoming WS text
-    LOG("[WS] TEXT from #%u len=%u: %.*s\n", num, length, length, payload);
-    // Handle web keyboard input: "KB:D:<hid>:<mod>" or "KB:U:..." or "KB:R:..."
-    if (length > 3 && payload[0] == 'K' && payload[1] == 'B' && payload[2] == ':') {
-      char cmd = payload[3];
-      LOG("[WebKB] cmd=%c\n", cmd);
-      if (cmd == 'R') {
-        // Release all keys from web keyboard
-        releaseAllKeys();
-        LOG("[WebKB] Release all\n");
-      } else {
-        // Parse "KB:D:<hid>:<mod>" or "KB:U:<hid>:<mod>"
-        int hid = 0, mod = 0;
-        sscanf((const char *)payload + 5, "%d:%d", &hid, &mod);
-        if (cmd == 'D') {
-          // Key down — build report with this key
-          kbd_report_t rpt = {};
-          rpt.modifier = (uint8_t)mod;
-          rpt.keycodes[0] = (uint8_t)hid;
-          forwardReportToPC(rpt);
-          // Also broadcast to monitor
-          String ascii = hidToAscii(hid, mod);
-          char json[128];
-          snprintf(json, sizeof(json),
-                   "{\"e\":\"press\",\"k\":\"%s\",\"h\":\"0x%02X\",\"m\":\"0x%02X\",\"t\":%lu,\"src\":\"web\"}",
-                   ascii.c_str(), hid, mod, millis());
-          webSocket.broadcastTXT(json);
-          LOG("[WebKB] Down: %s (0x%02X) mod=0x%02X\n", ascii.c_str(), hid, mod);
-        } else if (cmd == 'U') {
-          // Key up — send empty report (release)
-          kbd_report_t rpt = {};
-          rpt.modifier = (uint8_t)mod;
-          forwardReportToPC(rpt);
-          String ascii = hidToAscii(hid, 0);
-          char json[128];
-          snprintf(json, sizeof(json),
-                   "{\"e\":\"release\",\"k\":\"%s\",\"h\":\"0x%02X\",\"m\":\"0x%02X\",\"t\":%lu,\"src\":\"web\"}",
-                   ascii.c_str(), hid, mod, millis());
-          webSocket.broadcastTXT(json);
-        }
-      }
+    // Null-terminate the payload for safe string handling
+    String msg = String((char *)payload).substring(0, length);
+    LOG("[WS] TEXT from #%u: %s\n", num, msg.c_str());
+
+    // --- Web Keyboard: simple text-based protocol ---
+    // Special keys sent as named strings; characters sent as-is
+    if (msg == "Enter") {
+      Keyboard.press(KEY_RETURN);
+      delay(20);
+      Keyboard.releaseAll();
+      LOG("[WebKB] Enter\n");
+    } else if (msg == "Backspace") {
+      Keyboard.press(KEY_BACKSPACE);
+      delay(20);
+      Keyboard.releaseAll();
+      LOG("[WebKB] Backspace\n");
+    } else if (msg == "Tab") {
+      Keyboard.press(KEY_TAB);
+      delay(20);
+      Keyboard.releaseAll();
+      LOG("[WebKB] Tab\n");
+    } else if (msg == "Escape") {
+      Keyboard.press(KEY_ESC);
+      delay(20);
+      Keyboard.releaseAll();
+      LOG("[WebKB] Escape\n");
+    } else if (msg == "ArrowUp") {
+      Keyboard.press(KEY_UP_ARROW);
+      delay(20);
+      Keyboard.releaseAll();
+    } else if (msg == "ArrowDown") {
+      Keyboard.press(KEY_DOWN_ARROW);
+      delay(20);
+      Keyboard.releaseAll();
+    } else if (msg == "ArrowLeft") {
+      Keyboard.press(KEY_LEFT_ARROW);
+      delay(20);
+      Keyboard.releaseAll();
+    } else if (msg == "ArrowRight") {
+      Keyboard.press(KEY_RIGHT_ARROW);
+      delay(20);
+      Keyboard.releaseAll();
+    } else if (msg.length() > 0 && !msg.startsWith("Connected")) {
+      // Normal character(s) — let Keyboard.print() handle layout
+      Keyboard.print(msg.c_str());
+      LOG("[WebKB] print: %s\n", msg.c_str());
     }
+
+    // Broadcast to web monitor for display
+    if (msg.length() > 0 && msg.length() <= 4 && !msg.startsWith("Connected")) {
+      char json[160];
+      snprintf(json, sizeof(json),
+               "{\"e\":\"press\",\"k\":\"%s\",\"h\":\"\",\"m\":\"\",\"t\":%lu,\"src\":\"web\"}",
+               msg.c_str(), millis());
+      webSocket.broadcastTXT(json);
+    }
+
+    lastPacketTime = millis();
     break;
   }
   default:
