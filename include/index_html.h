@@ -74,6 +74,12 @@ header p{font-size:.8em;color:#718096;margin:2px 0 6px}
 .kb-shortcuts .sbtn{padding:5px 12px;border:1px solid rgba(183,148,244,.25);background:rgba(183,148,244,.08);color:#b794f4;border-radius:6px;cursor:pointer;font-size:.72em;font-weight:600;transition:.2s;white-space:nowrap}
 .kb-shortcuts .sbtn:hover{background:rgba(183,148,244,.2);border-color:#b794f4}
 .kb-shortcuts .sbtn:active{transform:scale(.95)}
+/* Language indicator */
+.lang-ind{display:inline-flex;align-items:center;gap:4px;font-size:.72em;padding:2px 10px;border-radius:6px;border:1px solid rgba(99,179,237,.15);color:#718096;transition:.3s}
+.lang-ind.th{background:rgba(246,173,85,.15);color:#f6ad55;border-color:rgba(246,173,85,.4)}
+.lang-ind.en{background:rgba(99,179,237,.15);color:#63b3ed;border-color:rgba(99,179,237,.4)}
+.lang-ind.detecting{animation:langPulse 1s infinite}
+@keyframes langPulse{0%,100%{opacity:1}50%{opacity:.4}}
 footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.stat-card .val{font-size:1.2em}}
 </style>
@@ -131,6 +137,8 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 </div>
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
 <span class="caps-ind off" id="capsInd">&#8682; CapsLock: OFF</span>
+<span class="lang-ind" id="langInd">&#127760; Lang: ?</span>
+<button class="sbtn" onclick="detectLang()" id="btnDetectLang" style="border-color:rgba(72,187,120,.4);background:rgba(72,187,120,.08);color:#48bb78;border-radius:6px;font-size:.72em;font-weight:600;padding:5px 12px;border-width:1px;border-style:solid;cursor:pointer">&#127760; Detect</button>
 </div>
 <textarea class="kb-area kb-hidden" id="kbInput" placeholder="Click here and type to send keystrokes to PC..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <div class="kb-shortcuts kb-hidden" id="kbShortcuts">
@@ -146,6 +154,7 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <button class="sbtn" onclick="wsSendCombo('Alt+Tab')">Alt+Tab</button>
 <button class="sbtn" onclick="wsSendCombo('Alt+F4')">Alt+F4</button>
 <button class="sbtn" onclick="wsSendCombo('PrtSc')">&#128247; PrtSc</button>
+<button class="sbtn" onclick="wsSendCombo('Win+R')">&#9654; Win+R</button>
 </div>
 <div class="kb-info kb-hidden" id="kbInfo">Keys typed here are sent as USB HID to the PC via ESP32</div>
 </div>
@@ -314,6 +323,29 @@ function connect(){
   ws.onerror=()=>{ws.close();};
   ws.onmessage=(ev)=>{
     if(ev.data.startsWith('Connected')) return;
+    if(ev.data.startsWith('LED:CAPS:')){
+      capsState=ev.data.charAt(9)==='1';
+      updateCapsUI();
+      return;
+    }
+    if(ev.data.startsWith('LANG:')){
+      const lang=ev.data.substring(5);
+      const li=document.getElementById('langInd');
+      if(lang==='TH'){
+        li.innerHTML='&#127481;&#127469; Thai';
+        li.className='lang-ind th';
+        document.getElementById('chkThai').checked=true;
+      } else if(lang==='EN'){
+        li.innerHTML='&#127482;&#127480; English';
+        li.className='lang-ind en';
+        document.getElementById('chkThai').checked=false;
+      } else if(lang==='DETECTING'){
+        li.innerHTML='&#127760; Detecting...';
+        li.className='lang-ind detecting';
+      }
+      footer.textContent='[LangDetect] '+lang;
+      return;
+    }
     handleMsg(ev.data);
   };
 }
@@ -381,11 +413,27 @@ function wsSendCombo(combo){
   if(combo==='CapsLock'){capsState=!capsState;updateCapsUI();}
 }
 
+function detectLang(){
+  if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
+  ws.send('CMD:DetectLang');
+  footer.textContent='[LangDetect] Starting detection...';
+}
+
 function wsSendText(msg){
   if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
   ws.send(msg);
   footer.textContent='[WebKB] sent: '+msg;
   console.log('[WebKB] sent:',msg);
+}
+
+// Send with Thai display info: "TH:<en>:<thai>" so ESP can show Thai in monitor
+function wsSendChar(original){
+  const mapped=mapChar(original);
+  if(document.getElementById('chkThai').checked && mapped!==original){
+    wsSendText('TH:'+mapped+':'+original);
+  } else {
+    wsSendText(mapped);
+  }
 }
 
 // Convert a character through Thai mapping if toggle is ON
@@ -394,17 +442,19 @@ function mapChar(ch){
   return THAI2EN[ch]||ch;
 }
 
-// PATH 1: keydown — ONLY for special keys (Enter, Backspace, arrows)
+// PATH 1: keydown — special keys + Backspace fallback when empty
 kbInput.addEventListener('keydown',function(e){
   if(e.key==='Enter'){e.preventDefault();wsSendText('Enter');return;}
-  if(e.key==='Backspace'){e.preventDefault();wsSendText('Backspace');return;}
+  if(e.key==='Backspace' && kbInput.value.length===0){
+    e.preventDefault();wsSendText('Backspace');return; // textarea empty fallback
+  }
   if(e.key==='Tab'){e.preventDefault();wsSendText('Tab');return;}
   if(e.key==='Escape'){e.preventDefault();wsSendText('Escape');return;}
   if(e.key==='ArrowUp'){e.preventDefault();wsSendText('ArrowUp');return;}
   if(e.key==='ArrowDown'){e.preventDefault();wsSendText('ArrowDown');return;}
   if(e.key==='ArrowLeft'){e.preventDefault();wsSendText('ArrowLeft');return;}
   if(e.key==='ArrowRight'){e.preventDefault();wsSendText('ArrowRight');return;}
-  // Let all other keys fall through to input event
+  // Let all other keys (including Backspace) fall through to input event
 });
 
 // PATH 2: input event — catches ALL typed characters (works on mobile IME too)
@@ -413,13 +463,13 @@ kbInput.addEventListener('compositionstart',function(){isComposing=true;});
 kbInput.addEventListener('compositionend',function(e){
   isComposing=false;
   if(e.data){
-    for(const ch of e.data) wsSendText(mapChar(ch));
+    for(const ch of e.data) wsSendChar(ch);
   }
 });
 kbInput.addEventListener('input',function(e){
   if(isComposing) return; // wait for compositionend
   if(e.inputType==='insertText' && e.data){
-    for(const ch of e.data) wsSendText(mapChar(ch));
+    for(const ch of e.data) wsSendChar(ch);
   } else if(e.inputType==='deleteContentBackward'){
     wsSendText('Backspace');
   }

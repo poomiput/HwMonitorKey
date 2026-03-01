@@ -58,6 +58,30 @@ static kbd_report_t prevReport;
 static unsigned long lastPacketTime = 0;
 static bool keysPressed = false;
 
+// --- CapsLock LED tracking (from USB host) ---
+static volatile bool capsLockLed = false;
+static volatile bool capsLockLedChanged = false;
+
+// --- Language Detection State Machine ---
+enum LangDetectState {
+  LD_IDLE = 0,
+  LD_ENSURE_CAPS_OFF,
+  LD_WAIT_CAPS_OFF,
+  LD_OPEN_RUN,
+  LD_WAIT_RUN,
+  LD_TYPE_CMD,
+  LD_WAIT_TYPE,
+  LD_PRESS_ENTER,
+  LD_WAIT_RESULT,
+  LD_DISMISS_ERROR,
+  LD_CHECK_RESULT,
+  LD_RESTORE_CAPS,
+  LD_SEND_RESULT
+};
+static LangDetectState ldState = LD_IDLE;
+static unsigned long ldTimer = 0;
+static String ldResult = "";
+
 // =====================================================================
 // HID Keycode → ASCII Mapping
 // =====================================================================
@@ -145,6 +169,17 @@ static String modifierString(uint8_t mod) {
 // =====================================================================
 static void forwardReportToPC(const kbd_report_t &report);
 static void releaseAllKeys();
+
+// =====================================================================
+// CapsLock LED Callback (called when PC sends LED status to keyboard)
+// =====================================================================
+static void onKeyboardLedEvent(void *handler_args, esp_event_base_t base,
+                               int32_t id, void *event_data) {
+  arduino_usb_hid_keyboard_event_data_t *data =
+      (arduino_usb_hid_keyboard_event_data_t *)event_data;
+  capsLockLed = data->capslock;
+  capsLockLedChanged = true;
+}
 
 // =====================================================================
 // ESP-NOW Receive Callback (runs in Wi-Fi task context)
@@ -282,8 +317,38 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.press(KEY_PRINT_SCREEN);
         delay(20);
         Keyboard.releaseAll();
+      } else if (combo == "Win+R") {
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "DetectLang") {
+        if (ldState == LD_IDLE) {
+          ldState = LD_ENSURE_CAPS_OFF;
+          LOG("[LangDetect] Detection started\n");
+          webSocket.broadcastTXT("LANG:DETECTING");
+        } else {
+          LOG("[LangDetect] Already in progress\n");
+        }
       } else {
         LOG("[WebKB] unknown combo: %s\n", combo.c_str());
+      }
+    // --- Thai mapping: "TH:<en_key>:<thai_display>" ---
+    } else if (msg.startsWith("TH:") && msg.length() >= 6) {
+      // Parse: TH:d:ก  (TH:<mapped_en>:<original_thai>)
+      int sep = msg.indexOf(':', 3);
+      if (sep > 3) {
+        String enKey = msg.substring(3, sep);
+        String thaiDisp = msg.substring(sep + 1);
+        // Type the English key (PC Thai layout will produce Thai char)
+        Keyboard.print(enKey.c_str());
+        LOG("[WebKB] Thai: type='%s' disp='%s'\n", enKey.c_str(), thaiDisp.c_str());
+        // Broadcast Thai char to monitor for correct display
+        char json[160];
+        snprintf(json, sizeof(json),
+                 "{\"e\":\"press\",\"k\":\"%s\",\"h\":\"\",\"m\":\"\",\"t\":%lu,\"src\":\"web\"}",
+                 thaiDisp.c_str(), millis());
+        webSocket.broadcastTXT(json);
       }
     } else if (msg.length() > 0 && !msg.startsWith("Connected")) {
       // Normal character(s) — let Keyboard.print() handle layout
@@ -291,8 +356,9 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
       LOG("[WebKB] print: %s\n", msg.c_str());
     }
 
-    // Broadcast to web monitor for display
-    if (msg.length() > 0 && msg.length() <= 4 && !msg.startsWith("Connected")) {
+    // Broadcast to web monitor for display (non-Thai, non-CMD messages)
+    if (msg.length() > 0 && msg.length() <= 10 && !msg.startsWith("Connected")
+        && !msg.startsWith("CMD:") && !msg.startsWith("TH:")) {
       char json[160];
       snprintf(json, sizeof(json),
                "{\"e\":\"press\",\"k\":\"%s\",\"h\":\"\",\"m\":\"\",\"t\":%lu,\"src\":\"web\"}",
@@ -464,7 +530,8 @@ void setup() {
 
   USB.begin();
   Keyboard.begin();
-  LOGLN("[USB HID] Keyboard device started");
+  Keyboard.onEvent(ARDUINO_USB_HID_KEYBOARD_LED_EVENT, onKeyboardLedEvent);
+  LOGLN("[USB HID] Keyboard device started (LED callback registered)");
 
   initWiFiAndEspNow();
   initWebServer();
@@ -484,6 +551,128 @@ void loop() {
   // Handle HTTP + WebSocket clients (sync — must call every loop)
   server.handleClient();
   webSocket.loop();
+
+  // --- CapsLock LED broadcast to web clients ---
+  if (capsLockLedChanged) {
+    capsLockLedChanged = false;
+    char msg[16];
+    snprintf(msg, sizeof(msg), "LED:CAPS:%d", capsLockLed ? 1 : 0);
+    webSocket.broadcastTXT(msg);
+    LOG("[LED] CapsLock=%d\n", capsLockLed ? 1 : 0);
+  }
+
+  // --- Language Detection State Machine ---
+  switch (ldState) {
+  case LD_IDLE:
+    break;
+  case LD_ENSURE_CAPS_OFF:
+    if (capsLockLed) {
+      Keyboard.press(KEY_CAPS_LOCK);
+      delay(20);
+      Keyboard.releaseAll();
+      ldState = LD_WAIT_CAPS_OFF;
+      ldTimer = millis();
+    } else {
+      ldState = LD_OPEN_RUN;
+      ldTimer = millis();
+    }
+    break;
+  case LD_WAIT_CAPS_OFF:
+    if (!capsLockLed || millis() - ldTimer > 500) {
+      ldState = LD_OPEN_RUN;
+      ldTimer = millis();
+    }
+    break;
+  case LD_OPEN_RUN:
+    Keyboard.press(KEY_LEFT_GUI);
+    Keyboard.press('r');
+    delay(20);
+    Keyboard.releaseAll();
+    ldState = LD_WAIT_RUN;
+    ldTimer = millis();
+    LOG("[LangDetect] Win+R\n");
+    break;
+  case LD_WAIT_RUN:
+    if (millis() - ldTimer > 800) {
+      ldState = LD_TYPE_CMD;
+    }
+    break;
+  case LD_TYPE_CMD: {
+    // Simple: always press CapsLock via PowerShell.
+    // If EN mode → command runs → CapsLock ON = English detected
+    // If TH mode → command garbled → nothing → CapsLock stays OFF = Thai
+    const char *cmd =
+        "powershell -w h -c \"(New-Object -Com WScript.Shell)"
+        ".SendKeys('{CAPSLOCK}')\"";
+    Keyboard.print(cmd);
+    ldState = LD_WAIT_TYPE;
+    ldTimer = millis();
+    LOG("[LangDetect] Command typed\n");
+    break;
+  }
+  case LD_WAIT_TYPE:
+    if (millis() - ldTimer > 500) {
+      ldState = LD_PRESS_ENTER;
+    }
+    break;
+  case LD_PRESS_ENTER:
+    Keyboard.press(KEY_RETURN);
+    delay(20);
+    Keyboard.releaseAll();
+    ldState = LD_WAIT_RESULT;
+    ldTimer = millis();
+    LOG("[LangDetect] Enter, waiting...\n");
+    break;
+  case LD_WAIT_RESULT:
+    if (millis() - ldTimer > 3500) {
+      ldState = LD_DISMISS_ERROR;
+    }
+    break;
+  case LD_DISMISS_ERROR:
+    // Press Escape twice: 1st closes error dialog, 2nd closes Win+R
+    Keyboard.press(KEY_ESC);
+    delay(20);
+    Keyboard.releaseAll();
+    delay(200);
+    Keyboard.press(KEY_ESC);
+    delay(20);
+    Keyboard.releaseAll();
+    delay(100);
+    ldState = LD_CHECK_RESULT;
+    LOG("[LangDetect] Dismiss dialogs\n");
+    break;
+  case LD_CHECK_RESULT:
+    // Flipped logic: CapsLock ON = EN (script ran), OFF = TH (script failed)
+    if (capsLockLed) {
+      ldResult = "EN";
+      ldState = LD_RESTORE_CAPS;
+      LOG("[LangDetect] LED ON -> English\n");
+    } else {
+      ldResult = "TH";
+      ldState = LD_SEND_RESULT;
+      LOG("[LangDetect] LED OFF -> Thai\n");
+    }
+    break;
+  case LD_RESTORE_CAPS:
+    // Restore CapsLock back to OFF after English detection
+    Keyboard.press(KEY_CAPS_LOCK);
+    delay(20);
+    Keyboard.releaseAll();
+    ldState = LD_SEND_RESULT;
+    ldTimer = millis();
+    break;
+  case LD_SEND_RESULT: {
+    char json[32];
+    snprintf(json, sizeof(json), "LANG:%s", ldResult.c_str());
+    webSocket.broadcastTXT(json);
+    LOG("[LangDetect] Result: %s\n", ldResult.c_str());
+    ldState = LD_IDLE;
+    break;
+  }
+  default:
+    ldState = LD_IDLE;
+    break;
+  }
 
   // --- Process new ESP-NOW report ---
   if (newReportAvailable) {
