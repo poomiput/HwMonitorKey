@@ -214,6 +214,77 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
       Keyboard.press(KEY_RIGHT_ARROW);
       delay(20);
       Keyboard.releaseAll();
+    } else if (msg == "CapsLock") {
+      Keyboard.press(KEY_CAPS_LOCK);
+      delay(20);
+      Keyboard.releaseAll();
+      LOG("[WebKB] CapsLock\n");
+    // --- Key combo commands: "CMD:<combo>" ---
+    } else if (msg.startsWith("CMD:")) {
+      String combo = msg.substring(4);
+      LOG("[WebKB] combo: %s\n", combo.c_str());
+      if (combo == "CapsLock") {
+        Keyboard.press(KEY_CAPS_LOCK);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Win+Space") {
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(' ');
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Win+D") {
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('d');
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Ctrl+Shift+Esc") {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(KEY_LEFT_SHIFT);
+        Keyboard.press(KEY_ESC);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Win+L") {
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('l');
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Ctrl+C") {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press('c');
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Ctrl+V") {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press('v');
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Ctrl+Z") {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press('z');
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Ctrl+A") {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press('a');
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Alt+Tab") {
+        Keyboard.press(KEY_LEFT_ALT);
+        Keyboard.press(KEY_TAB);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "Alt+F4") {
+        Keyboard.press(KEY_LEFT_ALT);
+        Keyboard.press(KEY_F4);
+        delay(20);
+        Keyboard.releaseAll();
+      } else if (combo == "PrtSc") {
+        Keyboard.press(KEY_PRINT_SCREEN);
+        delay(20);
+        Keyboard.releaseAll();
+      } else {
+        LOG("[WebKB] unknown combo: %s\n", combo.c_str());
+      }
     } else if (msg.length() > 0 && !msg.startsWith("Connected")) {
       // Normal character(s) — let Keyboard.print() handle layout
       Keyboard.print(msg.c_str());

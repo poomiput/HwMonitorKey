@@ -65,6 +65,15 @@ header p{font-size:.8em;color:#718096;margin:2px 0 6px}
 .kb-area::placeholder{color:#4a5568}
 .kb-info{font-size:.7em;color:#4a5568;margin-top:4px;text-align:center}
 .kb-hidden{display:none}
+/* CapsLock indicator */
+.caps-ind{display:inline-flex;align-items:center;gap:4px;font-size:.72em;padding:2px 10px;border-radius:6px;border:1px solid rgba(99,179,237,.15);color:#718096;transition:.3s}
+.caps-ind.on{background:rgba(72,187,120,.15);color:#48bb78;border-color:rgba(72,187,120,.4)}
+.caps-ind.off{background:rgba(160,174,192,.05);color:#4a5568}
+/* Keybind buttons */
+.kb-shortcuts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.kb-shortcuts .sbtn{padding:5px 12px;border:1px solid rgba(183,148,244,.25);background:rgba(183,148,244,.08);color:#b794f4;border-radius:6px;cursor:pointer;font-size:.72em;font-weight:600;transition:.2s;white-space:nowrap}
+.kb-shortcuts .sbtn:hover{background:rgba(183,148,244,.2);border-color:#b794f4}
+.kb-shortcuts .sbtn:active{transform:scale(.95)}
 footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.stat-card .val{font-size:1.2em}}
 </style>
@@ -117,9 +126,27 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <div class="kb-panel" id="kbPanel">
 <div class="kb-toggle">
 <label><input type="checkbox" id="chkKb" style="accent-color:#b794f4" onchange="toggleKb()"> &#9000; Web Keyboard</label>
+<label style="margin-left:12px"><input type="checkbox" id="chkThai" style="accent-color:#f6ad55"> &#127481;&#127469; Thai KB</label>
 <span style="font-size:.7em;color:#4a5568">(type here to send keys to PC)</span>
 </div>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+<span class="caps-ind off" id="capsInd">&#8682; CapsLock: OFF</span>
+</div>
 <textarea class="kb-area kb-hidden" id="kbInput" placeholder="Click here and type to send keystrokes to PC..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<div class="kb-shortcuts kb-hidden" id="kbShortcuts">
+<button class="sbtn" onclick="wsSendCombo('CapsLock')">&#8682; CapsLock</button>
+<button class="sbtn" onclick="wsSendCombo('Win+Space')">&#127760; Win+Space</button>
+<button class="sbtn" onclick="wsSendCombo('Win+D')">&#128187; Win+D</button>
+<button class="sbtn" onclick="wsSendCombo('Ctrl+Shift+Esc')">&#9881; TaskMgr</button>
+<button class="sbtn" onclick="wsSendCombo('Win+L')">&#128274; Win+L</button>
+<button class="sbtn" onclick="wsSendCombo('Ctrl+C')">Ctrl+C</button>
+<button class="sbtn" onclick="wsSendCombo('Ctrl+V')">Ctrl+V</button>
+<button class="sbtn" onclick="wsSendCombo('Ctrl+Z')">Ctrl+Z</button>
+<button class="sbtn" onclick="wsSendCombo('Ctrl+A')">Ctrl+A</button>
+<button class="sbtn" onclick="wsSendCombo('Alt+Tab')">Alt+Tab</button>
+<button class="sbtn" onclick="wsSendCombo('Alt+F4')">Alt+F4</button>
+<button class="sbtn" onclick="wsSendCombo('PrtSc')">&#128247; PrtSc</button>
+</div>
 <div class="kb-info kb-hidden" id="kbInfo">Keys typed here are sent as USB HID to the PC via ESP32</div>
 </div>
 <footer id="footer">Waiting for connection...</footer>
@@ -300,11 +327,58 @@ setInterval(()=>{
 const kbInput=document.getElementById('kbInput');
 const kbInfo=document.getElementById('kbInfo');
 
+// Thai Kedmanee layout → English key mapping
+// When phone KB is Thai, convert Thai chars to the English key at the same
+// physical position so Keyboard.print() sends the correct HID keycode.
+// PC with Thai layout will then produce the correct Thai character.
+const THAI2EN={
+  // ── Unshifted layer ──
+  '_':'`',
+  '\u0E45':'1','/'  :'2','-'  :'3','\u0E20':'4','\u0E16':'5',
+  '\u0E38':'6','\u0E36':'7','\u0E04':'8','\u0E15':'9','\u0E08':'0',
+  '\u0E02':'-','\u0E0A':'=',
+  '\u0E46':'q','\u0E44':'w','\u0E33':'e','\u0E1E':'r','\u0E30':'t',
+  '\u0E31':'y','\u0E35':'u','\u0E23':'i','\u0E19':'o','\u0E22':'p',
+  '\u0E1A':'[','\u0E25':']','\u0E03':'\\',
+  '\u0E1F':'a','\u0E2B':'s','\u0E01':'d','\u0E14':'f','\u0E40':'g',
+  '\u0E49':'h','\u0E48':'j','\u0E32':'k','\u0E2A':'l','\u0E27':';','\u0E07':"'",
+  '\u0E1C':'z','\u0E1B':'x','\u0E41':'c','\u0E2D':'v','\u0E34':'b',
+  '\u0E37':'n','\u0E17':'m','\u0E21':',','\u0E43':'.','\u0E1D':'/',
+  // ── Shifted layer ──
+  '%':'~','+':'!',
+  '\u0E51':'@','\u0E52':'#','\u0E53':'$','\u0E54':'%','\u0E39':'^',
+  '\u0E3F':'&','\u0E55':'*','\u0E56':'(','\u0E57':')','\u0E58':'_','\u0E59':'+',
+  '\u0E50':'Q','"':'W','\u0E0E':'E','\u0E11':'R','\u0E18':'T',
+  '\u0E4D':'Y','\u0E4A':'U','\u0E13':'I','\u0E2F':'O','\u0E0D':'P',
+  '\u0E10':'{',',':'}','\u0E05':'|',
+  '\u0E24':'A','\u0E06':'S','\u0E0F':'D','\u0E42':'F','\u0E0C':'G',
+  '\u0E47':'H','\u0E4B':'J','\u0E29':'K','\u0E28':'L','\u0E0B':':','.':'"',
+  '(':'Z',')':'X','\u0E09':'C','\u0E2E':'V','\u0E3A':'B',
+  '\u0E4C':'N','?':'M','\u0E12':'<','\u0E2C':'>','\u0E26':'?'
+};
+
+let capsState=false;
+const capsInd=document.getElementById('capsInd');
+
+function updateCapsUI(){
+  capsInd.textContent='\u21E2 CapsLock: '+(capsState?'ON':'OFF');
+  capsInd.className='caps-ind '+(capsState?'on':'off');
+}
+
 function toggleKb(){
   const on=document.getElementById('chkKb').checked;
   kbInput.classList.toggle('kb-hidden',!on);
   kbInfo.classList.toggle('kb-hidden',!on);
+  document.getElementById('kbShortcuts').classList.toggle('kb-hidden',!on);
   if(on) kbInput.focus();
+}
+
+function wsSendCombo(combo){
+  if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
+  ws.send('CMD:'+combo);
+  footer.textContent='[WebKB] combo: '+combo;
+  console.log('[WebKB] combo:',combo);
+  if(combo==='CapsLock'){capsState=!capsState;updateCapsUI();}
 }
 
 function wsSendText(msg){
@@ -314,13 +388,18 @@ function wsSendText(msg){
   console.log('[WebKB] sent:',msg);
 }
 
-// PATH 1: keydown — ONLY for special keys (Enter, Backspace)
+// Convert a character through Thai mapping if toggle is ON
+function mapChar(ch){
+  if(!document.getElementById('chkThai').checked) return ch;
+  return THAI2EN[ch]||ch;
+}
+
+// PATH 1: keydown — ONLY for special keys (Enter, Backspace, arrows)
 kbInput.addEventListener('keydown',function(e){
   if(e.key==='Enter'){e.preventDefault();wsSendText('Enter');return;}
   if(e.key==='Backspace'){e.preventDefault();wsSendText('Backspace');return;}
   if(e.key==='Tab'){e.preventDefault();wsSendText('Tab');return;}
   if(e.key==='Escape'){e.preventDefault();wsSendText('Escape');return;}
-  // Arrow keys
   if(e.key==='ArrowUp'){e.preventDefault();wsSendText('ArrowUp');return;}
   if(e.key==='ArrowDown'){e.preventDefault();wsSendText('ArrowDown');return;}
   if(e.key==='ArrowLeft'){e.preventDefault();wsSendText('ArrowLeft');return;}
@@ -334,15 +413,15 @@ kbInput.addEventListener('compositionstart',function(){isComposing=true;});
 kbInput.addEventListener('compositionend',function(e){
   isComposing=false;
   if(e.data){
-    for(const ch of e.data) wsSendText(ch);
+    for(const ch of e.data) wsSendText(mapChar(ch));
   }
 });
 kbInput.addEventListener('input',function(e){
   if(isComposing) return; // wait for compositionend
   if(e.inputType==='insertText' && e.data){
-    for(const ch of e.data) wsSendText(ch);
+    for(const ch of e.data) wsSendText(mapChar(ch));
   } else if(e.inputType==='deleteContentBackward'){
-    wsSendText('Backspace'); // mobile backspace fallback
+    wsSendText('Backspace');
   }
 });
 
