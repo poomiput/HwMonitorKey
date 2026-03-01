@@ -188,6 +188,15 @@ header p{font-size:.8em;color:#718096;margin:2px 0 6px}
 .badge.mod{background:rgba(246,173,85,.15);color:#f6ad55}
 .badge.mod_up{background:rgba(246,173,85,.08);color:#a0aec0}
 .hid-raw{color:#4a5568;font-size:.85em}
+/* Web Keyboard Input */
+.kb-panel{max-width:860px;margin:0 auto;width:100%;padding:0 24px}
+.kb-toggle{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.kb-toggle label{font-size:.78em;color:#718096;cursor:pointer;display:flex;align-items:center;gap:4px}
+.kb-area{width:100%;min-height:80px;background:#111827;border:1px solid rgba(99,179,237,.15);border-radius:10px;padding:14px;color:#63b3ed;font-family:'Cascadia Code',Consolas,monospace;font-size:1em;outline:none;caret-color:#63b3ed;resize:none}
+.kb-area:focus{border-color:rgba(99,179,237,.4);box-shadow:0 0 12px rgba(99,179,237,.1)}
+.kb-area::placeholder{color:#4a5568}
+.kb-info{font-size:.7em;color:#4a5568;margin-top:4px;text-align:center}
+.kb-hidden{display:none}
 footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.stat-card .val{font-size:1.2em}}
 </style>
@@ -236,6 +245,14 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <tbody id="logBody"></tbody>
 </table>
 </div>
+</div>
+<div class="kb-panel" id="kbPanel">
+<div class="kb-toggle">
+<label><input type="checkbox" id="chkKb" style="accent-color:#b794f4" onchange="toggleKb()"> &#9000; Web Keyboard</label>
+<span style="font-size:.7em;color:#4a5568">(type here to send keys to PC)</span>
+</div>
+<textarea class="kb-area kb-hidden" id="kbInput" placeholder="Click here and type to send keystrokes to PC..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<div class="kb-info kb-hidden" id="kbInfo">Keys typed here are sent as USB HID to the PC via ESP32</div>
 </div>
 <footer id="footer">Waiting for connection...</footer>
 
@@ -401,11 +418,70 @@ setInterval(()=>{
   if(sessionStart) sSession.textContent=fmtTime(Date.now()-sessionStart);
 },1000);
 
+// === Web Keyboard Input ===
+const kbInput=document.getElementById('kbInput');
+const kbInfo=document.getElementById('kbInfo');
+const JS2HID={KeyA:0x04,KeyB:0x05,KeyC:0x06,KeyD:0x07,KeyE:0x08,KeyF:0x09,KeyG:0x0A,KeyH:0x0B,KeyI:0x0C,KeyJ:0x0D,KeyK:0x0E,KeyL:0x0F,KeyM:0x10,KeyN:0x11,KeyO:0x12,KeyP:0x13,KeyQ:0x14,KeyR:0x15,KeyS:0x16,KeyT:0x17,KeyU:0x18,KeyV:0x19,KeyW:0x1A,KeyX:0x1B,KeyY:0x1C,KeyZ:0x1D,Digit1:0x1E,Digit2:0x1F,Digit3:0x20,Digit4:0x21,Digit5:0x22,Digit6:0x23,Digit7:0x24,Digit8:0x25,Digit9:0x26,Digit0:0x27,Enter:0x28,Escape:0x29,Backspace:0x2A,Tab:0x2B,Space:0x2C,Minus:0x2D,Equal:0x2E,BracketLeft:0x2F,BracketRight:0x30,Backslash:0x31,Semicolon:0x33,Quote:0x34,Backquote:0x35,Comma:0x36,Period:0x37,Slash:0x38,CapsLock:0x39,F1:0x3A,F2:0x3B,F3:0x3C,F4:0x3D,F5:0x3E,F6:0x3F,F7:0x40,F8:0x41,F9:0x42,F10:0x43,F11:0x44,F12:0x45,ArrowRight:0x4F,ArrowLeft:0x50,ArrowDown:0x51,ArrowUp:0x52,Delete:0x4C,Home:0x4A,End:0x4D,PageUp:0x4B,PageDown:0x4E,Insert:0x49};
+let webKeysDown=new Set();
+
+function toggleKb(){
+  const on=document.getElementById('chkKb').checked;
+  kbInput.classList.toggle('kb-hidden',!on);
+  kbInfo.classList.toggle('kb-hidden',!on);
+  if(on) kbInput.focus();
+}
+
+function sendWebKey(code,mod,isDown){
+  if(!ws||ws.readyState!==1) return;
+  // Format: "KB:<down|up>:<hidKeycode>:<modifier>"
+  ws.send('KB:'+(isDown?'D':'U')+':'+code+':'+mod);
+}
+
+kbInput.addEventListener('keydown',function(e){
+  e.preventDefault();
+  const hid=JS2HID[e.code];
+  if(!hid && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) return;
+  let mod=0;
+  if(e.ctrlKey) mod|=0x01;
+  if(e.shiftKey) mod|=0x02;
+  if(e.altKey) mod|=0x04;
+  if(e.metaKey) mod|=0x08;
+  const k=hid||0;
+  if(!webKeysDown.has(k)){
+    webKeysDown.add(k);
+    sendWebKey(k,mod,true);
+  }
+});
+
+kbInput.addEventListener('keyup',function(e){
+  e.preventDefault();
+  const hid=JS2HID[e.code]||0;
+  let mod=0;
+  if(e.ctrlKey) mod|=0x01;
+  if(e.shiftKey) mod|=0x02;
+  if(e.altKey) mod|=0x04;
+  if(e.metaKey) mod|=0x08;
+  webKeysDown.delete(hid);
+  sendWebKey(hid,mod,false);
+});
+
+// Release all on blur
+kbInput.addEventListener('blur',function(){
+  if(ws&&ws.readyState===1) ws.send('KB:R:0:0');
+  webKeysDown.clear();
+});
+
 connect();
 </script>
 </body>
 </html>
 )rawliteral";
+
+// =====================================================================
+// Forward Declarations
+// =====================================================================
+static void forwardReportToPC(const kbd_report_t &report);
+static void releaseAllKeys();
 
 // =====================================================================
 // ESP-NOW Receive Callback (runs in Wi-Fi task context)
@@ -432,6 +508,48 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
   case WStype_DISCONNECTED:
     LOG("[WS] Client #%u disconnected\n", num);
     break;
+  case WStype_TEXT: {
+    // Handle web keyboard input: "KB:D:<hid>:<mod>" or "KB:U:..." or "KB:R:..."
+    if (length > 3 && payload[0] == 'K' && payload[1] == 'B' && payload[2] == ':') {
+      char cmd = payload[3];
+      if (cmd == 'R') {
+        // Release all keys from web keyboard
+        releaseAllKeys();
+        LOG("[WebKB] Release all\n");
+      } else {
+        // Parse "KB:D:<hid>:<mod>" or "KB:U:<hid>:<mod>"
+        int hid = 0, mod = 0;
+        sscanf((const char *)payload + 5, "%d:%d", &hid, &mod);
+        if (cmd == 'D') {
+          // Key down — build report with this key
+          kbd_report_t rpt = {};
+          rpt.modifier = (uint8_t)mod;
+          rpt.keycodes[0] = (uint8_t)hid;
+          forwardReportToPC(rpt);
+          // Also broadcast to monitor
+          String ascii = hidToAscii(hid, mod);
+          char json[128];
+          snprintf(json, sizeof(json),
+                   "{\"e\":\"press\",\"k\":\"%s\",\"h\":\"0x%02X\",\"m\":\"0x%02X\",\"t\":%lu,\"src\":\"web\"}",
+                   ascii.c_str(), hid, mod, millis());
+          webSocket.broadcastTXT(json);
+          LOG("[WebKB] Down: %s (0x%02X) mod=0x%02X\n", ascii.c_str(), hid, mod);
+        } else if (cmd == 'U') {
+          // Key up — send empty report (release)
+          kbd_report_t rpt = {};
+          rpt.modifier = (uint8_t)mod;
+          forwardReportToPC(rpt);
+          String ascii = hidToAscii(hid, 0);
+          char json[128];
+          snprintf(json, sizeof(json),
+                   "{\"e\":\"release\",\"k\":\"%s\",\"h\":\"0x%02X\",\"m\":\"0x%02X\",\"t\":%lu,\"src\":\"web\"}",
+                   ascii.c_str(), hid, mod, millis());
+          webSocket.broadcastTXT(json);
+        }
+      }
+    }
+    break;
+  }
   default:
     break;
   }
