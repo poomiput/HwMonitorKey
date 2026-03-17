@@ -137,9 +137,9 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <input type="checkbox" id="chkScroll" checked style="accent-color:#63b3ed"> Auto-scroll
 </label>
 <label style="display:flex;align-items:center;gap:4px;font-size:.75em;color:#718096;cursor:pointer">
-<label style="display:flex;align-items:center;gap:4px;font-size:.75em;color:#718096;cursor:pointer">
 <input type="checkbox" id="chkSound" style="accent-color:#63b3ed"> Sound
 </label>
+<button class="btn" id="btnMode" onclick="wsSendAction('SwitchMode')" style="margin-left:8px;padding:4px 10px;font-size:0.8em;border-color:rgba(160,174,192,.4);background:rgba(160,174,192,.08);color:#a0aec0;transition:all 0.3s">&#128268; Mode: USB</button>
 <button class="btn danger" onclick="wsSendAction('ReleaseAll')" style="margin-left:8px;padding:4px 10px;font-size:0.8em">&#9888; Release Keys</button>
 </div>
 <div class="right">
@@ -441,6 +441,24 @@ function connect(){
       bleEl.textContent = bleState.toUpperCase();
       bleEl.style.color = bleState === 'Connected' ? '#48bb78' : '#f6ad55';
       bleEl.style.textShadow = bleState === 'Connected' ? '0 0 5px rgba(72,187,120,0.4)' : '0 0 5px rgba(246,173,85,0.4)';
+      return;
+    }
+    if(ev.data.startsWith('MODE:')){
+      const mode = ev.data.substring(5);
+      const modeBtn = document.getElementById('btnMode');
+      if(mode === 'BLE'){
+        modeBtn.innerHTML = '&#128246; Mode: BLE';
+        modeBtn.style.color = '#48bb78';
+        modeBtn.style.borderColor = 'rgba(72,187,120,0.6)';
+        modeBtn.style.background = 'rgba(72,187,120,0.1)';
+        modeBtn.style.textShadow = '0 0 5px rgba(72,187,120,0.3)';
+      } else {
+        modeBtn.innerHTML = '&#128268; Mode: USB';
+        modeBtn.style.color = '#a0aec0';
+        modeBtn.style.borderColor = 'rgba(160,174,192,0.4)';
+        modeBtn.style.background = 'rgba(160,174,192,0.08)';
+        modeBtn.style.textShadow = 'none';
+      }
       return;
     }
     handleMsg(ev.data);

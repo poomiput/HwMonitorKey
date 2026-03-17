@@ -57,6 +57,9 @@ String currentAttackerPort = "4444";
 // Global Objects
 // =====================================================================
 #define BOOT_BUTTON_PIN 0  // GPIO0 = BOOT button on DevKitC-1
+RTC_DATA_ATTR uint32_t rtc_boot_mode = 0; // 0=default(HW), 0xBBEE=Force BLE, 0xAA55=Force USB
+#define RTC_FORCE_BLE  0xBBEEu
+#define RTC_FORCE_USB  0xAA55u
 static HIDKeyboard Keyboard;
 static HIDMode currentHIDMode = HID_MODE_USB;
 static WebServer server(WS_PORT);
@@ -210,6 +213,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
   case WStype_CONNECTED:
     LOG("[WS] Client #%u connected\n", num);
     webSocket.sendTXT(num, "Connected to KeyboardMonitor");
+    webSocket.sendTXT(num, String("MODE:") + (currentHIDMode == HID_MODE_BLE ? "BLE" : "USB"));
     break;
   case WStype_DISCONNECTED:
     LOG("[WS] Client #%u disconnected\n", num);
@@ -841,6 +845,15 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
       } else if (combo == "ReleaseAll") {
         Keyboard.releaseAll();
         LOG("[WebKB] Panic: Released all keys\n");
+      } else if (combo == "SwitchMode") {
+        LOGLN("[WebKB] Rebooting to switch mode safely...");
+        if (currentHIDMode == HID_MODE_USB) {
+          rtc_boot_mode = RTC_FORCE_BLE;
+        } else {
+          rtc_boot_mode = RTC_FORCE_USB;
+        }
+        delay(200);
+        ESP.restart();
       } else {
         LOG("[WebKB] unknown combo: %s\n", combo.c_str());
       }
@@ -1069,17 +1082,29 @@ void setup() {
   LOGLN("========================================");
 
   // --- Boot Mode Selection ---
-  // Hold BOOT button (GPIO0) during startup → BLE mode
-  // Normal boot → USB HID mode (default)
+  // If we triggered a soft reboot via "SwitchMode", use RTC memory
   pinMode(BOOT_BUTTON_PIN, INPUT_PULLUP);
   delay(100); // debounce
-  if (digitalRead(BOOT_BUTTON_PIN) == LOW) {
+
+  if (rtc_boot_mode == RTC_FORCE_USB) {
+    currentHIDMode = HID_MODE_USB;
+    rtc_boot_mode = 0;
+    LOGLN("[MODE] >>> USB HID KEYBOARD MODE (Soft Reboot) <<<");
+  } else if (rtc_boot_mode == RTC_FORCE_BLE) {
     currentHIDMode = HID_MODE_BLE;
-    LOGLN("[MODE] >>> BLE HID KEYBOARD MODE <<<");
+    rtc_boot_mode = 0;
+    LOGLN("[MODE] >>> BLE HID KEYBOARD MODE (Soft Reboot) <<<");
     LOGLN("[MODE] Advertising as 'Magic Keyboard'");
   } else {
-    currentHIDMode = HID_MODE_USB;
-    LOGLN("[MODE] >>> USB HID KEYBOARD MODE <<<");
+    // Hard boot: Hold BOOT button (GPIO0) during startup → BLE mode
+    if (digitalRead(BOOT_BUTTON_PIN) == LOW) {
+      currentHIDMode = HID_MODE_BLE;
+      LOGLN("[MODE] >>> BLE HID KEYBOARD MODE <<<");
+      LOGLN("[MODE] Advertising as 'Magic Keyboard'");
+    } else {
+      currentHIDMode = HID_MODE_USB;
+      LOGLN("[MODE] >>> USB HID KEYBOARD MODE <<<");
+    }
   }
 
   Keyboard.begin(currentHIDMode);
