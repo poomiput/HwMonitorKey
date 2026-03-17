@@ -123,6 +123,7 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <div class="stat-card"><div class="val" id="sKPM">0</div><div class="lbl">Keys/Min</div></div>
 <div class="stat-card"><div class="val" id="sSession">00:00</div><div class="lbl">Session</div></div>
 <div class="stat-card"><div class="val" id="sTop">-</div><div class="lbl">Top Key</div></div>
+<div class="stat-card" id="bleStatCard" style="display:none"><div class="val" id="sBle" style="font-size:0.9em;color:#f6ad55;text-shadow:0 0 5px rgba(246,173,85,0.4)">WAITING</div><div class="lbl">BLE HID</div></div>
 </div>
 
 <div class="container">
@@ -136,8 +137,10 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <input type="checkbox" id="chkScroll" checked style="accent-color:#63b3ed"> Auto-scroll
 </label>
 <label style="display:flex;align-items:center;gap:4px;font-size:.75em;color:#718096;cursor:pointer">
+<label style="display:flex;align-items:center;gap:4px;font-size:.75em;color:#718096;cursor:pointer">
 <input type="checkbox" id="chkSound" style="accent-color:#63b3ed"> Sound
 </label>
+<button class="btn danger" onclick="wsSendAction('ReleaseAll')" style="margin-left:8px;padding:4px 10px;font-size:0.8em">&#9888; Release Keys</button>
 </div>
 <div class="right">
 <button class="btn" onclick="exportCSV()">Export CSV</button>
@@ -235,6 +238,13 @@ footer{text-align:center;padding:8px;font-size:.7em;color:#2d3748}
 <button class="run-btn" onclick="runScript()">&#9654; Run</button>
 </div>
 <div class="kb-info kb-hidden" id="kbInfo">Keys typed here are sent as USB HID to the PC via ESP32</div>
+<div class="type-panel kb-hidden" id="typePanel" style="margin-top:10px;width:100%">
+<div class="kb-col-title" style="margin-bottom:6px">&#9997; Type String (Sends full text at once)</div>
+<div style="display:flex;gap:8px;width:100%">
+<input class="run-input" id="typeInput" type="text" placeholder="Type text to send..." autocomplete="off" spellcheck="false" style="flex:1">
+<button class="run-btn" onclick="sendTypeText()" style="width:80px">Send</button>
+</div>
+</div>
 </div>
 <footer id="footer">Waiting for connection...</footer>
 
@@ -424,6 +434,15 @@ function connect(){
       footer.textContent='[LangDetect] '+lang;
       return;
     }
+    if(ev.data.startsWith('BLE:STATUS:')){
+      const bleState = ev.data.substring(11);
+      const bleEl = document.getElementById('sBle');
+      document.getElementById('bleStatCard').style.display = 'flex';
+      bleEl.textContent = bleState.toUpperCase();
+      bleEl.style.color = bleState === 'Connected' ? '#48bb78' : '#f6ad55';
+      bleEl.style.textShadow = bleState === 'Connected' ? '0 0 5px rgba(72,187,120,0.4)' : '0 0 5px rgba(246,173,85,0.4)';
+      return;
+    }
     handleMsg(ev.data);
   };
 }
@@ -576,6 +595,22 @@ document.addEventListener('DOMContentLoaded',function(){
     if(e.key==='Enter'){e.preventDefault();runScript();}
   });
 });
+
+function wsSendAction(action){
+  if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
+  ws.send('CMD:'+action);
+  footer.textContent='[Action] '+action;
+}
+
+function sendTypeText(){
+  const inputEl=document.getElementById('typeInput');
+  const txt=inputEl.value;
+  if(!txt)return;
+  if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}
+  ws.send('CMD:TYPE:'+txt);
+  footer.textContent='[Type] '+txt;
+  inputEl.value='';
+}
 
 function wsSendText(msg){
   if(!ws||ws.readyState!==1){console.log('[WebKB] WS not connected!');return;}

