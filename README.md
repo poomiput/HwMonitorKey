@@ -38,15 +38,16 @@ Two ESP32-S3 boards communicate over **ESP-NOW** (Wi-Fi based, no router needed)
 
 ## Architecture
 
+![System Diagram](docs/assets/architecture.png)
+
+```mermaid
+flowchart TD
+    KB["⌨️ Real Keyboard"] -->|"USB (keyboard cable)"| HOST["ESP32-S3 Host<br/>(capture & inject)"]
+    HOST -->|"USB (to PC)"| PC["💻 PC"]
+    HOST -->|ESP-NOW| WEB["🌐 Web Monitor<br/>(control / type / read log via phone)"]
 ```
-[USB Keyboard]
-      │ USB OTG
-[ESP32-S3 Host] ──ESP-NOW──▶ [ESP32-S3 Device] ──USB──▶ [PC]
-                                      │
-                               Wi-Fi AP + WebSocket
-                                      │
-                              [Browser Dashboard]
-```
+
+> 💡 The two ESP32-S3 boards (**×2**) act as the capture-and-inject bridge between the keyboard and the PC, while the web dashboard lets you monitor and send keystrokes remotely.
 
 ## Getting Started
 
